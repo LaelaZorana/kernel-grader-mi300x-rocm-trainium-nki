@@ -1,0 +1,60 @@
+[
+  {
+    "seed": 3,
+    "sim_exec": "simulator",
+    "dev_exec": "device",
+    "same_input_sha256": true,
+    "input_sha256": "167108d24ee210ea9992a7a347a260a064f902c82de00937a5f3385953e07fac",
+    "bins_compared": 4096,
+    "bins_bit_identical_sim_vs_device": 890,
+    "bins_differing_sim_vs_device": 3206,
+    "max_ulp_gap_sim_vs_device": 8.0,
+    "median_ulp_gap_sim_vs_device": 1.0,
+    "bins_over_432_ulp_sim_vs_device": 0,
+    "sim_vs_float64_reference": {
+      "ulp_max": 2.0,
+      "ulp_median": 0.0,
+      "bins_over_432_ulp": 0,
+      "bins_bit_exact": 2642
+    },
+    "device_vs_float64_reference": {
+      "ulp_max": 8.0,
+      "ulp_median": 1.0,
+      "bins_over_432_ulp": 0,
+      "bins_bit_exact": 891
+    },
+    "weights_identical": true,
+    "wrong_kernel_bins_bit_identical": 945,
+    "wrong_kernel_on_device_bins_over_432_ulp": 4088,
+    "wrong_kernel_on_device_ulp_median": 86472.0
+  },
+  {
+    "seed": 7,
+    "sim_exec": "simulator",
+    "dev_exec": "device",
+    "same_input_sha256": true,
+    "input_sha256": "5e36626a52c9f0abd64b14578a2cb31b684dfbb41f2e8646b24bc182ea7381ca",
+    "bins_compared": 4096,
+    "bins_bit_identical_sim_vs_device": 904,
+    "bins_differing_sim_vs_device": 3192,
+    "max_ulp_gap_sim_vs_device": 8.0,
+    "median_ulp_gap_sim_vs_device": 1.0,
+    "bins_over_432_ulp_sim_vs_device": 0,
+    "sim_vs_float64_reference": {
+      "ulp_max": 2.0,
+      "ulp_median": 0.0,
+      "bins_over_432_ulp": 0,
+      "bins_bit_exact": 2664
+    },
+    "device_vs_float64_reference": {
+      "ulp_max": 8.0,
+      "ulp_median": 1.0,
+      "bins_over_432_ulp": 0,
+      "bins_bit_exact": 942
+    },
+    "weights_identical": true,
+    "wrong_kernel_bins_bit_identical": 1035,
+    "wrong_kernel_on_device_bins_over_432_ulp": 4087,
+    "wrong_kernel_on_device_ulp_median": 88032.0
+  }
+]

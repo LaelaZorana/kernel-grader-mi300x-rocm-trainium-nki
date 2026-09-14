@@ -1,0 +1,33 @@
+# task scoping for the kernel-rocm gym. audit.py reads this file in the task-scoping check
+# and fails when any required key is missing. keep every value in step with audit.py and
+# harness.hip, the check cross reads n, bins and the arch against the code.
+
+name = "hip-histogram-4096"
+task = "write a HIP histogram kernel: 64M uint32 keys, skewed Zipf like, into 4096 bins, faster than a naive global atomic kernel"
+n = 67108864
+bins = 4096
+distribution = "bin = floor(4096 * u^4), u uniform in [0,1). about 1 in 8 keys land in bin 0, bins 0 to 15 take about 1 in 4"
+dtype = "uint32 keys, uint32 counts. float variant in the audit uses float32 weights and float16 weights"
+
+[seed]
+policy = "private 64 bit seed per run, never printed. hardened mode derives a fresh seed per call from round and slot index. GYM_SEED env gives a repeatable run"
+
+[scoring_hardware]
+name = "AMD MI300X"
+arch = "gfx942"
+rocm = "7.2.4"
+compute_units = 304
+
+[rounds]
+unhardened = 1
+hardened = 5
+statistic = "median"
+
+[tolerance]
+policy = "uint32 counts must match the CPU reference exactly, every bin. float sums are graded with the abs, rel and ULP bounds the accumulation-order check reports, never exact match"
+count_abs = 0
+float_rel_max = 2.5843945438686927e-05
+float_ulp_max = 432
+
+[timing]
+policy = "hipDeviceSynchronize and hipGetLastError inside the timed region. device time still pending after the slot returns is added and flagged as async return, which scores 0. median over rounds, warm up call before the first timed slot"

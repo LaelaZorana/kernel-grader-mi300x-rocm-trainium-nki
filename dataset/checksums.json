@@ -1,0 +1,17 @@
+{
+  "checks.jsonl": {
+    "sha256": "c4d62fffd43eb573b815ff3951e91f9e13dc0afa6141269a9b0bd1cf734590ca",
+    "rows": 51,
+    "bytes": 44988
+  },
+  "gyms.jsonl": {
+    "sha256": "a4b3abdb9162e57a2bc9e13f3dfeb751f481d804f001fa88d717d5b0f0b333d2",
+    "rows": 7,
+    "bytes": 3151
+  },
+  "nki_bins.jsonl": {
+    "sha256": "8828495294d0c7e270520153590393a23f5120333c6045d74b7071ef8b9727f0",
+    "rows": 16384,
+    "bytes": 9796822
+  }
+}

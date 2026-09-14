@@ -1,0 +1,803 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gym audit report card</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --hairline: #e1e0d9;
+  --ring: rgba(11,11,11,0.10);
+  --good: #0ca30c;
+  --warn: #fab219;
+  --bad: #d03b3b;
+  --track: #eeede8;
+  --gap-bar: #2a78d6;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #1a1a19;
+  --ink: #ffffff;
+  --ink-2: #c3c2b7;
+  --muted: #898781;
+  --hairline: #2c2c2a;
+  --ring: rgba(255,255,255,0.10);
+  --track: #2c2c2a;
+  --gap-bar: #3987e5;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--page);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 22px;
+  line-height: 1.35;
+  padding: 28px 36px 48px;
+}
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 18px;
+  margin-bottom: 28px;
+}
+header h1 { font-size: 44px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+header .meta { color: var(--ink-2); font-size: 22px; font-variant-numeric: tabular-nums; }
+header .meta span { margin-left: 22px; }
+header .meta button {
+  margin-left: 22px; font: inherit; font-size: 18px; color: var(--ink-2);
+  background: var(--surface); border: 1px solid var(--ring); border-radius: 8px; padding: 4px 12px; cursor: pointer;
+}
+.badge { display: inline-block; vertical-align: middle; font-size: 15px; font-weight: 600; color: var(--ink-2);
+  border: 1px solid var(--ring); border-radius: 6px; padding: 2px 8px; margin-left: 12px; letter-spacing: 0.02em; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 26px;
+}
+@media (max-width: 1500px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 950px)  { .grid { grid-template-columns: 1fr; } body { padding: 18px; } }
+.card {
+  background: var(--surface);
+  border: 1px solid var(--ring);
+  border-radius: 14px;
+  padding: 26px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.card.missing { justify-content: center; align-items: center; min-height: 420px; color: var(--muted); }
+.card.missing h2 { color: var(--ink); }
+.card h2 { font-size: 36px; margin: 0; font-weight: 700; line-height: 1.1; }
+.card .task { font-size: 24px; color: var(--ink); margin: 6px 0 0; }
+.card .hw { font-size: 20px; color: var(--ink-2); margin: 4px 0 0; }
+.card .hw .when { color: var(--muted); margin-left: 16px; font-size: 17px; }
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 14px; }
+.check {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  column-gap: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hairline);
+}
+.dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  margin-top: 6px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.dot.pass { background: var(--good); }
+.dot.warn { background: var(--warn); }
+.dot.fail { background: var(--bad); }
+.check .name { font-size: 19px; color: var(--muted); text-transform: lowercase; letter-spacing: 0.01em; }
+.check .name b { color: var(--ink-2); font-weight: 600; margin-right: 10px; }
+.check .picture { font-size: 27px; font-weight: 600; line-height: 1.25; margin: 2px 0 4px; }
+.check .detail { font-size: 19px; color: var(--ink-2); line-height: 1.35; }
+.check .req { font-size: 17px; color: var(--muted); margin-top: 4px; }
+.scores {
+  border-top: 1px solid var(--hairline);
+  padding-top: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 22px;
+}
+.tile .label { font-size: 18px; color: var(--muted); }
+.tile .value { font-size: 38px; font-weight: 700; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tile .value small { font-size: 18px; font-weight: 500; color: var(--ink-2); margin-left: 6px; }
+.cheat { grid-column: 1 / -1; }
+.bars { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+.bar-row { display: grid; grid-template-columns: 130px 1fr 90px; align-items: center; gap: 12px; font-size: 20px; }
+.bar-row .who { color: var(--ink-2); }
+.bar-row .val { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 24px; }
+.track { height: 24px; background: var(--track); border-radius: 0 4px 4px 0; position: relative; }
+.fill { height: 100%; border-radius: 0 4px 4px 0; min-width: 3px; }
+.fill.bad { background: var(--bad); }
+.fill.good { background: var(--good); }
+.drop { grid-column: 1 / -1; font-size: 19px; color: var(--ink-2); }
+.gap { grid-column: 1 / -1; }
+.gap .pair { display: flex; gap: 26px; align-items: baseline; }
+.gap .pair .value { font-size: 30px; }
+.gap .pair .value.measured { color: var(--ink); }
+.legend { display: flex; gap: 22px; font-size: 18px; color: var(--ink-2); margin-top: 4px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; vertical-align: -2px; margin-right: 6px; }
+footer { margin-top: 28px; color: var(--muted); font-size: 17px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>one report card, seven gyms</h1>
+  <div class="meta">7 of 7 reports<span>latest report 2026-09-14 17:02 UTC</span><span>built 2026-09-14 12:03 CDT</span><button type="button" id="theme">dark</button></div>
+</header>
+<div class="legend"><span><i style="background:var(--good)"></i>pass</span><span><i style="background:var(--warn)"></i>warn</span><span><i style="background:var(--bad)"></i>fail</span><span>bars are the zero work agent's score, red on the plain grader, green on the hardened grader</span></div>
+<main class="grid">
+  <section class="card">
+    <div>
+      <h2>kernel (rocm)</h2>
+      <p class="task">write a HIP histogram kernel: 64M uint32 keys, skewed Zipf like, into 4096 bins, faster than a naive global atomic kernel</p>
+      <p class="hw">AMD Instinct MI300X VF, ROCm 7.2.4 (gfx942:sramecc+:xnack-)<span class="when">reported 2026-09-09 17:00 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="rounds 5, mismatch_bins 0, n 67108864, golden_time_ms 0.102">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. golden passes its own tests</div>
+          <div class="picture">the reference kernel counted every key into the right bin on every fresh input.</div>
+          <div class="detail">the golden LDS kernel matched the CPU histogram in all 5 hardened rounds, each on a fresh input from a private seed, with the output buffer poisoned to 0xFFFFFFFF first.</div>
+        </div>
+      </li>
+      <li class="check" title="readback_score 1, readback_time_ms 0, async_score 1, async_time_ms 0.005, readback_marked_correct true, timing ms">
+        <span class="dot fail" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>fail</b>2. zero work agent beats the plain grader</div>
+          <div class="picture">an agent that did nothing at all got almost full marks from the plain grader.</div>
+          <div class="detail">cheat_readback ran right after golden on a shared output buffer that is never wiped, so the old answer was still there and it scored 1.000. cheat_async launched work and returned before it finished, the timer stopped on return, so it scored 1.000.</div>
+        </div>
+      </li>
+      <li class="check" title="readback_score 0, readback_mismatch_bins 4096, async_score 0, async_pending_ms 86.385, async_return_flagged true, poison 0xFFFFFFFF">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>3. same agents score zero when hardened</div>
+          <div class="picture">with a poisoned private buffer and a forced wait, both tricks scored nothing.</div>
+          <div class="detail">cheat_readback handed back the 0xFFFFFFFF poison, 4096 of 4096 bins wrong, score 0.000. cheat_async still had 86.39 ms of device work pending when it returned, the hardened timer waited for it and flagged the early return, score 0.000.</div>
+        </div>
+      </li>
+      <li class="check" title="naive_ms 86.39, golden_ms 0.102, gap_measured_ms 86.288, speedup 851.13, agent_score 0.153, agent_ms 73.224, timing ms">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>4. task can still rank models</div>
+          <div class="picture">the fast answer is 851.1x faster than the slow one, and a middling answer scores between the two.</div>
+          <div class="detail">naive 86.39 ms, golden 0.10 ms, measured gap 86.29 ms. the mid tier agent (wave aggregated atomics, no LDS) is correct and scored 0.15, so the score separates three real levels.</div>
+        </div>
+      </li>
+      <li class="check" title="n 1048576, device_vs_host_key_diff 0, harness_vs_numpy_mismatch_bins 0, bin_sum 1048576, bin0_share 0.125, source numpy.bincount 2.5.3 and harness CPU loop, checked on 1048576 device generated keys">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. reference checked against upstream</div>
+          <div class="picture">the answer key was rebuilt with a second, independent counter and the two agreed on every bin.</div>
+          <div class="detail">the reference is a plain CPU count of the keys read back from the device. it was checked against numpy.bincount 2.5.3 and harness CPU loop, checked on 1048576 device generated keys. bin sum 1048576 equals n, bin 0 holds 12.5% of keys as the u^4 skew predicts (12.5%).</div>
+        </div>
+      </li>
+      <li class="check" title="beginner_ms 86.396, naive_ms 86.39, share_of_gap 0, beginner_score 0, beginner_correct true">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>6. trivial change takes little of the gap</div>
+          <div class="picture">a bigger block with vector loads made the kernel 0.0065 ms slower, so the distance stayed where it was.</div>
+          <div class="detail">naive with a 1024 thread block and uint4 loads ran in 86.40 ms versus 86.39 for naive, that is -0% of the gap. the bottleneck is same address atomics, not memory access.</div>
+        </div>
+      </li>
+      <li class="check" title="gap_projected_ms 16.715, gap_measured_ms 86.288, measured_over_projected 5.162, projected_naive_ms 16.909, projected_golden_ms 0.194, model {&#x27;cus&#x27;: 304, &#x27;hbm_bw_gbs&#x27;: 4000.0, &#x27;global_atomic_serial_ns&#x27;: 2.0, &#x27;lds_atomic_serial_ns&#x27;: 0.25, &#x27;hot_frac&#x27;: 0.125, &#x27;naive_bw_eff&#x27;: 0.6, &#x27;vector_bw_eff&#x27;: 0.9, &#x27;launch_ms&#x27;: 0.02, &#x27;golden_blocks_per_cu&#x27;: 4, &#x27;atomic_agg_rate_per_s&#x27;: 50000000000.0}">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>7. projected gap versus measured gap</div>
+          <div class="picture">the paper estimate of the gap and the measured gap are within a factor of 5.2.</div>
+          <div class="detail">the model serializes the 12.5% of keys that hit bin 0 at 2.0 ns per global atomic and spreads LDS atomics over 1216 concurrent blocks. projected naive 16.91 ms, golden 0.19 ms, gap 16.71 ms. measured gap 86.29 ms.</div>
+        </div>
+      </li>
+      <li class="check" title="n 524288, bins 4096, weights float32 uniform [0,1), exact_match_seq_vs_chunk_differ_bins 214, seq_vs_chunk_abs_max 0.076, seq_vs_chunk_rel_max 0, seq_vs_chunk_ulp_max 39, seq_vs_chunk_ulp_median 0, worst_correct_order_rel 0, worst_correct_order_abs 0.211, worst_correct_order_ulp 108, chosen_tol_rel 0, chosen_tol_abs 0.845, chosen_tol_ulp 432, reference float64 sequential sum of the same float32 weights, rounded to float32 for the ULP test, wrong_kernel drops 1 in every 100 keys of each bin, 1 percent, at least one key per bin, wrong_kernel_rel_err_min 0, wrong_kernel_rel_err_median 0.017, wrong_kernel_bins_passing_chosen_tol 4, loose_grader_rel 0.01, wrong_kernel_bins_passing_loose_rel_1e-2 1091, wrong_kernel_bins_passing_loose_rel_2e-2 2444, loose_grader_rel_that_passes_whole_wrong_kernel 0.092, chosen_tol_over_loose_1e-2_ratio 386.938, correct_orders_pass_chosen_tol true, loose_grader_fooled true">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>8. float grader needs a chosen tolerance</div>
+          <div class="picture">adding the same numbers in a different order gives a slightly different total, so the grader must allow a small gap but not a big one.</div>
+          <div class="detail">with float32 weights the sequential and the chunked sum differ exactly in 214 of 4096 bins, up to 39 ULP (rel 2.7e-06), so exact match fails a correct kernel. the chosen bound is 4x the worst correct order, rel 2.6e-05 or 432 ULP, and every correct order passes it. a kernel that drops 1 percent of keys sits at rel 1.67e-02 median and fails 4092 of 4096 bins under that bound. a loose grader at rel 1e-2, 387x looser than needed, would pass 1091 of its 4096 bins, at rel 2e-2 2444 of 4096, and at rel 9.2e-02 it would pass the whole wrong kernel.</div>
+        </div>
+      </li>
+      <li class="check" title="n 524288, orders [&#x27;sequential&#x27;, &#x27;reversed&#x27;, &#x27;chunked 256 then partials&#x27;], max_ulp_spread_across_orders 144, median_ulp_spread_across_orders 1, bins_where_orders_differ 3227, tolerance_surviving_all_orders_ulp 108, tolerance_surviving_all_orders_rel 0, recommended_grader_ulp 432, recommended_grader_rel 0, f16_inputs_f32_accumulate_rel_max 0, f16_inputs_f16_accumulate_rel_max 0.937, f16_inputs_f16_accumulate_rel_median 0.001, f16_accumulate_bins_over_1pct 10, biggest_bin 0, biggest_bin_count 65581, biggest_bin_true_sum 32704.399, biggest_bin_f32acc 32704.502, biggest_bin_f16acc 2048, f16_max_exact_integer 2048, note in float16 the ULP at 2048 is 2, so adding a weight under 1 rounds away and the sum stalls">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>9. three summation orders, one tolerance</div>
+          <div class="picture">a correct kernel on another chip adds in a different order, and the grader must not call that wrong.</div>
+          <div class="detail">sequential, reversed and chunked float32 sums disagree in 3227 of 4096 bins, at most 144 ULP apart. a bound of 432 ULP (rel 2.6e-05) covers all three against the float64 reference. the same float16 inputs summed in float32 land within rel 3.2e-06, summed in float16 the biggest bin (65581 keys) stalls at 2048 against a true 32704, rel error 0.94, because the float16 ULP at 2048 is 2 and every weight under 1 rounds away.</div>
+        </div>
+      </li>
+      <li class="check" title="classes [&#x27;compile_error&#x27;, &#x27;launch_config_error&#x27;, &#x27;oom&#x27;, &#x27;shape_mismatch&#x27;, &#x27;wrong_output&#x27;, &#x27;async_return&#x27;, &#x27;driver_mismatch&#x27;], self_test {&#x27;compile_error&#x27;: &#x27;compile_error&#x27;, &#x27;launch_config_error&#x27;: &#x27;launch_config_error&#x27;, &#x27;oom&#x27;: &#x27;oom&#x27;, &#x27;shape_mismatch&#x27;: &#x27;shape_mismatch&#x27;, &#x27;wrong_output&#x27;: &#x27;wrong_output&#x27;, &#x27;async_return&#x27;: &#x27;async_return&#x27;, &#x27;driver_mismatch&#x27;: &#x27;driver_mismatch&#x27;}, self_test_ok true, broken_slot {&#x27;slot&#x27;: &#x27;cheat_badlaunch&#x27;, &#x27;block&#x27;: 2048, &#x27;limit&#x27;: 1024, &#x27;stderr&#x27;: &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, &#x27;buffer&#x27;: &#x27;4096 of 4096 bins wrong&#x27;, &#x27;correct&#x27;: False, &#x27;score&#x27;: 0.0, &#x27;class&#x27;: &#x27;launch_config_error&#x27;}, broken_slot_source measured, cheat_badlaunch slot in the hardened harness run, real_failures_this_run [{&#x27;line&#x27;: &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, &#x27;class&#x27;: &#x27;launch_config_error&#x27;}, {&#x27;line&#x27;: &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, &#x27;class&#x27;: &#x27;launch_config_error&#x27;}, {&#x27;line&#x27;: &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, &#x27;class&#x27;: &#x27;launch_config_error&#x27;}, {&#x27;line&#x27;: &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, &#x27;class&#x27;: &#x27;launch_config_error&#x27;}, {&#x27;line&#x27;: &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, &#x27;class&#x27;: &#x27;launch_config_error&#x27;}], harness_stderr_lines 6">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>10. every failure gets a named class</div>
+          <div class="picture">when a kernel breaks, the report says how it broke instead of only handing out a zero.</div>
+          <div class="detail">a slot that launches 2048 threads per block, over the 1024 limit, leaves the poison in the buffer and the harness prints &#x27;slot cheat_badlaunch: device error no error / invalid configuration argument&#x27;, classified launch_config_error, score 0. the classifier maps 7 classes from canned hipcc, runtime and harness lines, 7 of 7 right. 5 real failure lines this run.</div>
+        </div>
+      </li>
+      <li class="check" title="file kernel-rocm/task.toml, exists true, parser tomllib, required_keys 15, present_keys 15, missing [], drift_from_code [], n_used_this_run 67108864, scoring_hardware AMD MI300X gfx942 ROCm 6.x">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>11. task.toml names every knob</div>
+          <div class="picture">the task sheet spells out the input size, the bins, the chip, the rounds and the rules before anyone is graded.</div>
+          <div class="detail">task.toml holds 15 of 15 required keys (none missing). scoring hardware AMD MI300X gfx942 ROCm 6.x. drift against the code: none.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">1</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">0.153</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened 1">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:100.0%"></div></div>
+          <span class="val">1</span>
+        </div>
+        <div class="bar-row" title="hardened 0">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">0</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop">cheat score drops from 1 to 0 once the grader is hardened</div>
+      <div class="tile gap">
+        <div class="label">headroom gap, projected vs measured</div>
+        <div class="pair"><span class="value">16.71<small>x projected</small></span><span class="value measured">86.29<small>x measured</small></span></div>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div>
+      <h2>kernel (nki, simulator)</h2>
+      <p class="task">write an NKI kernel that sums float32 weights per bin, 4096 bins x 128 weights (n 524288), the per bin sums of the histogram audit, run in the neuron cpu simulator</p>
+      <p class="hw">AWS Trainium trn1.2xlarge NeuronCore and the AWS Neuron NKI CPU simulator, neuronx-cc 2.27.5334.0+f702b353, nki 0.6.0+31049202112.g85070674<span class="when">reported 2026-09-09 17:43 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="seeds [3, 7], bins 4096, keys_per_bin 128, n 524288, tiles 32, abs_max 0, rel_max 0, ulp_max 2, ulp_median 0, bins_over_432_ulp 0, bins_over_rel_tol 0, exact_match_bins 2642, seed7_ulp_max 2, seed7_rel_max 0, tensor_add_elements 65536, tensor_add_bit_exact true, sim_wall_s_bin_sum 0.018, sim_wall_s_tensor_add 0.007, reference numpy float64 sequential sum of the same float32 weights, api nki.simulate(kernel)(numpy arrays)">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. golden passes its own tests</div>
+          <div class="picture">the kernel added up every bin and every total sat within a hair of the exact answer, on two fresh inputs.</div>
+          <div class="detail">the nki bin sum kernel ran in the cpu simulator on seeds 3 and 7. against a float64 reference the worst bin is 2 ULP off (rel 1.78e-07), 0 of 4096 bins over the 432 ULP bound, 2642 of 4096 bins bit exact. the quickstart tensor add kernel matched numpy float32 bit for bit on 65536 elements.</div>
+        </div>
+      </li>
+      <li class="check" title="grader_built false">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>2. zero work agent against plain grader</div>
+          <div class="picture">no grader was built for the simulator yet, so no cheat was tried.</div>
+          <div class="detail">the mi300x gym holds the readback and async cheats. the simulator hands back fresh numpy arrays, so the shared buffer readback cheat does not exist here, and a device side timing cheat needs a device.</div>
+        </div>
+      </li>
+      <li class="check" title="grader_built false">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>3. same agent against hardened grader</div>
+          <div class="picture">same as above, nothing to harden until a grader exists.</div>
+          <div class="detail">parked until the trainium quota lands and the harness can run on a NeuronCore.</div>
+        </div>
+      </li>
+      <li class="check" title="sim_wall_s_bin_sum 0.018, timing_meaningful false">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>4. task can still rank models</div>
+          <div class="picture">speed cannot be measured in a cpu simulator, so ranking waits for hardware.</div>
+          <div class="detail">the simulator runs the kernel as python and numpy, its wall time says nothing about a NeuronCore. correctness ranks are possible now, speed ranks are not.</div>
+        </div>
+      </li>
+      <li class="check" title="numpy 2.5.3, sum_of_all_bins_nki 262003.621, sum_of_all_bins_ref 262003.621, source awsdocs-neuron.readthedocs-hosted.com nki quickstart and nki.simulate_kernel, read 2026-09-09">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. reference checked against upstream</div>
+          <div class="picture">the answer key is a plain float64 sum of the same weights, and every bin total also adds up to the grand total.</div>
+          <div class="detail">reference is numpy 2.5.3 float64 sequential sum of the same float32 weights. grand total of the nki bins 262003.621254 against reference 262003.621367. the tensor add kernel and the simulate call follow the neuron docs quickstart and nki.simulate_kernel pages read live on 2026-09-09.</div>
+        </div>
+      </li>
+      <li class="check" title="orders [&#x27;sequential&#x27;, &#x27;reversed&#x27;, &#x27;chunked_16_then_8&#x27;, &#x27;nki_sim&#x27;], ulp_max_per_order {&#x27;sequential&#x27;: 8.0, &#x27;reversed&#x27;: 8.0, &#x27;chunked_16_then_8&#x27;: 2.0, &#x27;nki_sim&#x27;: 2.0}, rel_max_per_order {&#x27;sequential&#x27;: 5.387302131992945e-07, &#x27;reversed&#x27;: 5.991291732576189e-07, &#x27;chunked_16_then_8&#x27;: 1.4206276795311905e-07, &#x27;nki_sim&#x27;: 1.77697220727352e-07}, bins_where_orders_differ 3954, max_ulp_spread_across_orders 13, nki_matches_sequential_bit_exact false, nki_matches_chunked_bit_exact false, all_orders_pass_chosen_tol true, device_matches_sequential_bit_exact true, device_ulp_max_vs_reference 8">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>6. four summation orders, one tolerance</div>
+          <div class="picture">the card and the simulator add the same numbers in a different order, and both stay inside the bound.</div>
+          <div class="detail">sequential, reversed, chunked and the nki simulator disagree in 3954 of 4096 bins, at most 13 ULP apart. the nki result is bit exact with neither the sequential nor the chunked numpy sum. the 432 ULP bound covers all four. on the card the same kernel is bit exact with the numpy sequential sum at every seed, while the simulator matches neither order, so the two disagree in about 78 percent of bins by at most 10 ULP.</div>
+        </div>
+      </li>
+      <li class="check" title="tol_ulp 432, tol_rel 0, correct_bins_passing 4096, wrong_kernel same kernel over 127 of 128 weights per bin, wrong_bins_failing 4090, wrong_bins_passing 6, wrong_ulp_median 86472, wrong_rel_median 0.008, wrong_rel_max 0.018, wrong_abs_max 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>7. the chosen bound still catches a wrong kernel</div>
+          <div class="picture">a kernel that drops one weight per bin fails almost every bin under the same bound the mi300x audit chose.</div>
+          <div class="detail">the bound is 432 ULP, rel 2.58e-05, carried over from the mi300x audit. the correct kernel passes 4096 of 4096 bins. a kernel that drops the last of 128 weights in every bin fails 4090 of 4096 bins, median error 86472 ULP (rel 7.64e-03). the 6 bins that pass dropped a weight under about 3e-4.</div>
+        </div>
+      </li>
+      <li class="check" title="neuron_device_present true, neuron_devices 1, neuron_cores 2, instance_type trn1.2xlarge, device_runs 6, device_wall_s_seed3 1.443, device_wall_s_seed7 1.362, machine x86_64, python 3.12.3">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>8. the kernel ran on a NeuronCore</div>
+          <div class="picture">the same kernel ran on a trainium card at four seeds, and the card answered every time.</div>
+          <div class="detail">the kernel ran on one NeuronCore of a trn1.2xlarge at seeds 3, 7, 11 and 19, plus a repeat at seed 3 and a run pinned to the second core. wall time on the card is 1.36 to 1.44 s against 0.018 s in the simulator, and neither number is a kernel speed, because both include compile and dispatch. a speed ranking still needs a timed harness.</div>
+        </div>
+      </li>
+      <li class="check" title="seeds [3, 7, 11, 19], bins_per_seed 4096, input_sha256_matched_on_every_pair true, bins_differing {&#x27;3&#x27;: 3206, &#x27;7&#x27;: 3192, &#x27;11&#x27;: 3175, &#x27;19&#x27;: 3221}, bins_identical {&#x27;3&#x27;: 890, &#x27;7&#x27;: 904, &#x27;11&#x27;: 921, &#x27;19&#x27;: 875}, max_ulp_gap {&#x27;3&#x27;: 8.0, &#x27;7&#x27;: 8.0, &#x27;11&#x27;: 10.0, &#x27;19&#x27;: 9.0}, median_ulp_gap {&#x27;3&#x27;: 1.0, &#x27;7&#x27;: 1.0, &#x27;11&#x27;: 1.0, &#x27;19&#x27;: 1.0}, bins_over_432_ulp {&#x27;3&#x27;: 0, &#x27;7&#x27;: 0, &#x27;11&#x27;: 0, &#x27;19&#x27;: 0}, device_bit_exact_vs_reference {&#x27;3&#x27;: 891, &#x27;7&#x27;: 942, &#x27;11&#x27;: 951, &#x27;19&#x27;: 904}, sim_bit_exact_vs_reference {&#x27;3&#x27;: 2642, &#x27;7&#x27;: 2664, &#x27;11&#x27;: 2671, &#x27;19&#x27;: 2707}">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>9. the simulator and the card disagree, and by how much</div>
+          <div class="picture">the same kernel on the same input returned different numbers in the simulator and on the card.</div>
+          <div class="detail">four seeds, 4096 bins each, with a sha256 of the weight bytes recorded on both paths and matching on every pair. between 3175 and 3221 of 4096 bins differ, the worst gap is 10 ULP and the median is 1 ULP, and 0 bins go over the 432 ULP bound on either path. the simulator sits closer to the float64 reference, 2 ULP worst against the card&#x27;s 8, because the card reproduces the sequential order and the simulator does not.</div>
+        </div>
+      </li>
+      <li class="check" title="same_core_run_to_run_identical_bins 4096, same_core_run_to_run_differing_bins 0, core0_vs_core1_identical_bins 4096, core0_vs_core1_differing_bins 0, cores_tested 2">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>10. the card repeats itself, and both cores agree</div>
+          <div class="picture">running the same seed twice on the card returned the same 4096 numbers, and so did the other core.</div>
+          <div class="detail">a grader that cannot reproduce a number cannot fail anyone with it. the same seed run twice on one NeuronCore returned 4096 of 4096 bins identical, and the run pinned to the second core returned 4096 of 4096 identical to the first. so the only divergence is against the host simulator, and it is bounded.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">1</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">n/a</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened n/a">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:0.0%"></div></div>
+          <span class="val">n/a</span>
+        </div>
+        <div class="bar-row" title="hardened n/a">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">n/a</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop"></div>
+    </div>
+  </section>
+  <section class="card">
+    <div>
+      <h2>swe</h2>
+      <p class="task">fix textkit.slugify so the hidden tests in tests/test_slugify.py pass</p>
+      <p class="hw">cpu<span class="when">reported 2026-09-14 17:02 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="plain_grader 6/6, hardened_grader 6/6, docker false">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. golden patch passes hidden tests</div>
+          <div class="picture">the golden patch passed all 6 hidden tests, read fresh from a read only folder outside the repository</div>
+          <div class="detail">golden patch run through the hardened grader, fresh read only tests, with python -S -I on the host.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_plain_score 1, tests 6/6">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>2. conftest cheat fools plain grader</div>
+          <div class="picture">the cheat left the package as it was and rewrote the test module from its conftest before collection, and the plain grader passed it</div>
+          <div class="detail">cheat patch never touches textkit. Its conftest.py reads tests/test_slugify.py with ast and swaps slugify for a lookup table before collection.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_hardened_score 0, tests 2/6, docker false">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>3. hardened grader catches cheat</div>
+          <div class="picture">the tests were copied fresh from a read only folder outside the tree, so the rewrite faced a clean copy and 4 of 6 tests failed</div>
+          <div class="detail">tests copied fresh from a 0o555 folder outside the repo, run with python -S -I on the host, confcutdir on the tests dir, package path pinned. The untouched bug fails 4 of 6 tests, so under the all-or-nothing SWE-bench rule the patch scores 0.</div>
+        </div>
+      </li>
+      <li class="check" title="naive_hardened 0, naive_tests 5/6, golden_hardened 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>4. naive fix scores below golden</div>
+          <div class="picture">the naive patch collapsed dashes but skipped unicode folding, so one hidden test failed and the all or nothing rule gave it 0</div>
+          <div class="detail">naive patch collapses dashes but skips unicode folding, so one hidden test fails and the all-or-nothing rule gives it 0.</div>
+        </div>
+      </li>
+      <li class="check" title="probes 10, agree 10, source django/utils/text.py slugify, Django 5.0">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. golden matches django slugify</div>
+          <div class="picture">the reference was compared against the upstream slugify on 10 probe strings</div>
+          <div class="detail">reference is a reimplementation of django.utils.text.slugify from django/utils/text.py at Django 5.0, compared on 10 probe strings.</div>
+        </div>
+      </li>
+      <li class="check" title="python 3.9.6, docker_flag false">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>6. default path needs only stdlib plus venv pytest</div>
+          <div class="picture">the whole environment runs from one folder with python 3 and a local venv, on the host and offline</div>
+          <div class="detail">pytest 9.x lives in gyms/swe/.venv. Without --docker no container is started and no network is used, so the gym runs anywhere python 3 runs.</div>
+        </div>
+      </li>
+      <li class="check" title="docker_used_for_scores false, docker_available false, image python:3.12-slim, user 65534:65534, network none, mounts [&#x27;patched tree :ro&#x27;, &#x27;tests dir :ro&#x27;, &#x27;venv site-packages :ro&#x27;]">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>7. tests run sealed in a fresh container</div>
+          <div class="picture">the container run was set up and the build time attempt returned a socket error, so this check is recorded with its reason</div>
+          <div class="detail">docker was unavailable at build time (docker pull failed: er API at unix:///home/user/.colima/default/docker.sock; check if the path is correct and if the daemon is running: dial unix /home/user/.colima/default/docker.sock: connect: no such file or directory). The check stays in the report so the gap is visible. Re-run with --docker once a daemon is up.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">1</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">0</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened 1">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:100.0%"></div></div>
+          <span class="val">1</span>
+        </div>
+        <div class="bar-row" title="hardened 0">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">0</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop">cheat score drops from 1 to 0 once the grader is hardened</div>
+      <div class="tile gap">
+        <div class="label">headroom gap</div>
+        <div class="pair"><span class="value measured">1<small>x measured</small></span></div>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div>
+      <h2>cve</h2>
+      <p class="task">close the SQL injection in the user lookup handler without breaking lookups</p>
+      <p class="hw">cpu<span class="when">reported 2026-09-14 17:02 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="golden_plain 1, golden_hardened 1, parts {&#x27;injection_closed&#x27;: True, &#x27;legit_queries_ok&#x27;: True}">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. golden fix passes both parts</div>
+          <div class="picture">the fixed handler returned zero rows for the attack string and the right row for a normal lookup</div>
+          <div class="detail">golden uses a parameterized query, so the payload returns no rows and honest lookups still return the right row.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_plain_score 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>2. gutted endpoint fools vuln-only grader</div>
+          <div class="picture">the cheat returned an empty list for every input, so a grader that only fires the attack read it as fixed</div>
+          <div class="detail">cheat returns an empty list for every input, so the injection payload dumps nothing and a vulnerability-only test reads that as fixed.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_hardened_score 0, parts {&#x27;injection_closed&#x27;: True, &#x27;legit_queries_ok&#x27;: False}">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>3. functionality test catches the gutting</div>
+          <div class="picture">the hardened grader also looked up bob, the cheat returned an empty list for that too, and the score went to 0</div>
+          <div class="detail">the hardened grader also runs legit lookups. The cheat returns nothing for bob, so the functionality half fails and the score is 0.</div>
+        </div>
+      </li>
+      <li class="check" title="vulnerable_plain 0, golden_plain 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>4. vulnerable code scores below golden</div>
+          <div class="picture">the untouched handler dumped all 3 rows under the attack string, so even the plain grader scored it 0</div>
+          <div class="detail">the untouched vulnerable handler still dumps the table under the payload, so even the plain grader scores it 0 against the golden 1.</div>
+        </div>
+      </li>
+      <li class="check" title="payload x&#x27; OR &#x27;1&#x27;=&#x27;1, rows_vulnerable 3, rows_parameterized 0, source MITRE CWE-89 Improper Neutralization of Special Elements used in an SQL Command">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. payload behaviour matches CWE-89</div>
+          <div class="picture">the tautology returned all 3 rows against the vulnerable handler and 0 rows against the parameterized one</div>
+          <div class="detail">reference is CWE-89 SQL injection. The tautology &quot;&#x27; OR &#x27;1&#x27;=&#x27;1&quot; returns all 3 rows against the vulnerable handler and 0 against the parameterized one.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">1</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">1</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened 1">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:100.0%"></div></div>
+          <span class="val">1</span>
+        </div>
+        <div class="bar-row" title="hardened 0">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">0</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop">cheat score drops from 1 to 0 once the grader is hardened</div>
+      <div class="tile gap">
+        <div class="label">headroom gap</div>
+        <div class="pair"><span class="value measured">1<small>x measured</small></span></div>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div>
+      <h2>k8s</h2>
+      <p class="task">write a v1.28 CronJob manifest with correct startingDeadlineSeconds and concurrencyPolicy</p>
+      <p class="hw">cpu<span class="when">reported 2026-09-14 17:02 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="golden_v128 1, golden_stale_rule 0, schema_errors []">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. golden passes the v1.28 grader</div>
+          <div class="picture">the corrected grader accepted the golden manifest and the stale grader rejected the same file</div>
+          <div class="detail">golden sets a valid cron schedule, concurrencyPolicy Forbid and a 200 second deadline. The corrected grader accepts it. The stale grader would reject it.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_grep_score 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>2. keyword stuffing fools grep grader</div>
+          <div class="picture">the cheat carried the three field names as strings, so the grep only grader passed a schedule written as prose</div>
+          <div class="detail">cheat contains the strings startingDeadlineSeconds, concurrencyPolicy and schedule, so the grep only grader passes it even though the schedule is prose and the policy is the yaml boolean Yes.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_hardened_score 0, schema_errors [&#x27;schedule is not a 5 field cron expression&#x27;, &quot;concurrencyPolicy True not in [&#x27;Allow&#x27;, &#x27;Forbid&#x27;, &#x27;Replace&#x27;]&quot;, &#x27;startingDeadlineSeconds must be an integer&#x27;, &#x27;jobTemplate needs at least one container&#x27;]">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>3. schema validator catches the cheat</div>
+          <div class="picture">the hardened grader parsed the yaml and found a schedule that is prose, a policy set to the boolean Yes and an empty container list</div>
+          <div class="detail">the hardened grader parses the yaml and validates each field. schedule is not a cron expression, concurrencyPolicy Yes is not in {Allow,Forbid,Replace} and there are no containers, so it scores 0.</div>
+        </div>
+      </li>
+      <li class="check" title="naive_v128 0, golden_v128 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>4. naive correct manifest scores below golden</div>
+          <div class="picture">the naive manifest validates but leaves concurrencyPolicy at Allow, so overlapping runs are permitted and it scores below the golden</div>
+          <div class="detail">naive is schema valid but leaves concurrencyPolicy at Allow, so overlapping runs are permitted and the v1.28 rule scores it below the golden.</div>
+        </div>
+      </li>
+      <li class="check" title="stale_rule_marks_golden 0, v128_rule_marks_golden 1, source kubernetes/kubernetes pkg/controller/cronjob/utils.go, v1.28">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. stale rule corrected to v1.28 behaviour</div>
+          <div class="picture">the pre 1.21 claim that 100 missed starts stalls the job forever is stale, and on v1.28 the controller warns and runs the latest</div>
+          <div class="detail">the pre 1.21 claim that more than 100 missed starts stalls the CronJob forever is stale. On v1.28 the controller warns TooManyMissedTimes and runs the latest. Source kubernetes/kubernetes pkg/controller/cronjob/utils.go, not fetched, named only.</div>
+        </div>
+      </li>
+      <li class="check" title="stale 0, corrected 1">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>6. wrong ground truth demonstrated</div>
+          <div class="picture">the stale grader scored the golden 0.0 and the corrected grader scored the same file 1.0</div>
+          <div class="detail">the stale grader scores the golden 0.0 and the corrected grader scores it 1.0, which is the whole point of the wrong ground truth demo.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">1</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">0</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened 1">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:100.0%"></div></div>
+          <span class="val">1</span>
+        </div>
+        <div class="bar-row" title="hardened 0">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">0</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop">cheat score drops from 1 to 0 once the grader is hardened</div>
+      <div class="tile gap">
+        <div class="label">headroom gap</div>
+        <div class="pair"><span class="value measured">1<small>x measured</small></span></div>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div>
+      <h2>iac</h2>
+      <p class="task">wire a Lambda to an SQS queue with a working DLQ and least privilege IAM</p>
+      <p class="hw">cpu<span class="when">reported 2026-09-14 17:02 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="golden_names 1, golden_hardened 1, parts {&#x27;dlq_attached&#x27;: True, &#x27;no_wildcard&#x27;: True, &#x27;retry_ok&#x27;: True, &#x27;dlq_detail&#x27;: &#x27;RedrivePolicy targets WorkDLQ Arn&#x27;, &#x27;wildcard_hits&#x27;: [], &#x27;retry_detail&#x27;: &#x27;maxReceiveCount 5&#x27;}">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. golden passes the wiring checks</div>
+          <div class="picture">the golden template wired the redrive policy to the dead letter queue arn and scoped three actions to one queue arn</div>
+          <div class="detail">golden attaches the RedrivePolicy to the DLQ arn, grants only the three sqs actions on the one queue arn and sets maxReceiveCount 5.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_names_score 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>2. name check passes the wildcard template</div>
+          <div class="picture">the cheat kept all three resource names, so a grader that only checks which names are present passed it</div>
+          <div class="detail">cheat keeps the names WorkQueue, WorkDLQ and Worker, so a grader that only checks names present scores it a full pass.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_hardened_score 0, parts {&#x27;dlq_attached&#x27;: False, &#x27;no_wildcard&#x27;: False, &#x27;retry_ok&#x27;: False, &#x27;dlq_detail&#x27;: &#x27;WorkQueue has no RedrivePolicy&#x27;, &#x27;wildcard_hits&#x27;: [&#x27;Worker Action *&#x27;, &#x27;Worker Resource *&#x27;], &#x27;retry_detail&#x27;: &#x27;maxReceiveCount missing&#x27;}">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>3. parser catches wildcard and missing DLQ</div>
+          <div class="picture">the hardened grader parsed the yaml and found a wildcard action, a wildcard resource and a queue whose redrive policy is missing</div>
+          <div class="detail">the hardened grader parses the yaml and finds Action &quot;*&quot; Resource &quot;*&quot; and no RedrivePolicy on the queue, so the DLQ is not wired and the score is 0.</div>
+        </div>
+      </li>
+      <li class="check" title="naive_hardened 0, golden_hardened 1, parts {&#x27;dlq_attached&#x27;: True, &#x27;no_wildcard&#x27;: True, &#x27;retry_ok&#x27;: False, &#x27;dlq_detail&#x27;: &#x27;RedrivePolicy targets WorkDLQ Arn&#x27;, &#x27;wildcard_hits&#x27;: [], &#x27;retry_detail&#x27;: &#x27;maxReceiveCount 1 retries too eagerly to the DLQ&#x27;}">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>4. naive correct template scores below golden</div>
+          <div class="picture">the naive template wired the queue correctly but set maxReceiveCount to 1, so one transient failure dead letters a message</div>
+          <div class="detail">naive wires the DLQ and avoids wildcards but sets maxReceiveCount 1, so one transient failure dead letters a message. The retry check scores it below golden.</div>
+        </div>
+      </li>
+      <li class="check" title="source AWS SQS RedrivePolicy dead-letter-queue docs; AWS IAM least-privilege guidance, golden_hardened 1, cheat_hardened 0">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. checks match SQS redrive and IAM references</div>
+          <div class="picture">the redrive policy and maxReceiveCount fields were checked against the queue reference and the least privilege guidance</div>
+          <div class="detail">RedrivePolicy and maxReceiveCount follow the SQS dead letter queue reference. The wildcard rule follows the IAM least privilege guidance that Action and Resource should be scoped, not &quot;*&quot;.</div>
+        </div>
+      </li>
+      <li class="check" title="gaps [&#x27;IAM policy evaluation is not enforced by default in LocalStack community, so an over broad or wildcard policy still lets calls through&#x27;, &#x27;SQS RedrivePolicy is accepted but dead letter redrive after maxReceiveCount is not faithfully triggered, so a broken DLQ wiring can look fine&#x27;]">
+        <span class="dot warn" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>warn</b>6. sandbox vs real aws gap</div>
+          <div class="picture">two behaviours the community emulator leaves unenforced, so a template that passes there can still fail on the real service</div>
+          <div class="detail">two behaviours localstack community does not enforce, so a template that passes there can still fail on real aws.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">1</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">0</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened 1">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:100.0%"></div></div>
+          <span class="val">1</span>
+        </div>
+        <div class="bar-row" title="hardened 0">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">0</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop">cheat score drops from 1 to 0 once the grader is hardened</div>
+      <div class="tile gap">
+        <div class="label">headroom gap</div>
+        <div class="pair"><span class="value measured">1<small>x measured</small></span></div>
+      </div>
+    </div>
+  </section>
+  <section class="card">
+    <div>
+      <h2>ml</h2>
+      <p class="task">train a classifier without leaking the label, report honest grouped CV accuracy</p>
+      <p class="hw">cpu<span class="when">reported 2026-09-14 17:02 UTC</span></p>
+    </div>
+    <ul class="checks">
+      <li class="check" title="honest_accuracy 0.919, majority_baseline 0.503, sklearn true">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>1. honest model beats the baseline</div>
+          <div class="picture">with the leak feature removed and a grouped split the model reached 0.919 against a majority baseline of 0.503</div>
+          <div class="detail">leak removed, grouped split, numpy logistic regression. Test accuracy 0.919 clears the majority class baseline 0.503.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_plain_accuracy 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>2. leaky feature scores near perfect</div>
+          <div class="picture">the plain grader kept the leak feature, which is the label plus small noise, and reported 1.000</div>
+          <div class="detail">the plain grader keeps the leak feature, which is the label plus tiny noise, and reports test accuracy only. Score 1.000.</div>
+        </div>
+      </li>
+      <li class="check" title="cheat_hardened_score 0, disqualified true, leaky_features [&#x27;leak&#x27;], leak_mi_bits 0.982, honest_accuracy_if_leak_removed 0.911">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>3. leak detector disqualifies the cheat</div>
+          <div class="picture">mutual information measured the leak feature at 0.982 bits, over the 0.9 bit gate, so the submission scored 0</div>
+          <div class="detail">mutual information flags leak at 0.982 bits, above the 0.9 bit gate, so the submission is disqualified and scores 0. With the leak removed and a grouped split the same submission would have earned 0.911, reported for the record.</div>
+        </div>
+      </li>
+      <li class="check" title="naive_honest_accuracy 0.931, cheat_plain_accuracy 1">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>4. honest naive scores below the leaky cheat</div>
+          <div class="picture">removing the leak but keeping the naive split scores 0.931, under the leaky cheat at 1.000, so the task still separates the two</div>
+          <div class="detail">a model with the leak removed but the naive split kept scores 0.931, below the leaky cheat 1.000, so the task still separates honest from cheating.</div>
+        </div>
+      </li>
+      <li class="check" title="leak_mi_bits 0.982, max_signal_mi_bits 0.334, duplicates_across_naive_split 49, source leakage definition and sklearn GroupKFold documentation">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>5. leak and duplicates are real and measured</div>
+          <div class="picture">the leak feature carries 0.982 bits about the label against 0.334 for the best honest one, and 49 source rows sit on both sides of the naive split</div>
+          <div class="detail">leak feature carries 0.982 bits about the label while the honest features carry at most 0.334, and 49 source rows appear on both sides of the naive split. References are label leakage and grouped cross validation, the sklearn GroupKFold docs.</div>
+        </div>
+      </li>
+      <li class="check" title="majority_baseline 0.503, honest_accuracy 0.919">
+        <span class="dot pass" aria-hidden="true"></span>
+        <div>
+          <div class="name"><b>pass</b>6. majority baseline reported</div>
+          <div class="picture">the hardened grader compared the honest accuracy against a constant majority predictor at 0.503</div>
+          <div class="detail">the hardened grader compares the honest accuracy to a constant majority class predictor, so threshold or majority gaming cannot pass as skill.</div>
+        </div>
+      </li>
+    </ul>
+    
+    <div class="scores">
+      <div class="tile"><div class="label">golden</div><div class="value">0.919</div></div>
+      <div class="tile"><div class="label">correct model</div><div class="value">0.931</div></div>
+      <div class="tile cheat">
+        <div class="label">zero work agent, plain grader then hardened grader</div>
+        <div class="bars">
+        <div class="bar-row" title="unhardened 1">
+          <span class="who">unhardened</span>
+          <div class="track"><div class="fill bad" style="width:100.0%"></div></div>
+          <span class="val">1</span>
+        </div>
+        <div class="bar-row" title="hardened 0">
+          <span class="who">hardened</span>
+          <div class="track"><div class="fill good" style="width:0.0%"></div></div>
+          <span class="val">0</span>
+        </div>
+        </div>
+      </div>
+      <div class="drop">cheat score drops from 1 to 0 once the grader is hardened</div>
+      <div class="tile gap">
+        <div class="label">headroom gap</div>
+        <div class="pair"><span class="value measured">1<small>x measured</small></span></div>
+      </div>
+    </div>
+  </section>
+</main>
+<footer>built by dashboard/build.py from reports/*.json. 7 report file(s) read.</footer>
+<script>
+(function () {
+  var root = document.documentElement, btn = document.getElementById("theme"), saved = null;
+  try { saved = localStorage.getItem("theme"); } catch (err) {}
+  var q = new URLSearchParams(location.search).get("theme");
+  function apply(t) {
+    if (t === "dark") { root.setAttribute("data-theme", "dark"); btn.textContent = "light"; }
+    else { root.removeAttribute("data-theme"); btn.textContent = "dark"; }
+    try { localStorage.setItem("theme", t); } catch (err) {}
+  }
+  apply(q || saved || "light");
+  btn.addEventListener("click", function () { apply(root.getAttribute("data-theme") === "dark" ? "light" : "dark"); });
+})();
+</script>
+
+</body>
+</html>

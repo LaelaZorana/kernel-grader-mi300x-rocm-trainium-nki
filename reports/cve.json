@@ -1,0 +1,79 @@
+{
+  "gym": "cve",
+  "task": "close the SQL injection in the user lookup handler without breaking lookups",
+  "hardware": "cpu",
+  "timestamp": "2026-09-14T17:02:30.574640+00:00",
+  "scores": {
+    "golden": 1.0,
+    "correct_model": 1.0,
+    "zero_work_agent_unhardened": 1.0,
+    "zero_work_agent_hardened": 0.0,
+    "gap_projected": null,
+    "gap_measured": 1.0
+  },
+  "checks": [
+    {
+      "id": "correctness",
+      "name": "golden fix passes both parts",
+      "status": "pass",
+      "picture": "the fixed handler returned zero rows for the attack string and the right row for a normal lookup",
+      "detail": "golden uses a parameterized query, so the payload returns no rows and honest lookups still return the right row.",
+      "numbers": {
+        "golden_plain": 1.0,
+        "golden_hardened": 1.0,
+        "parts": {
+          "injection_closed": true,
+          "legit_queries_ok": true
+        }
+      }
+    },
+    {
+      "id": "cheat-unhardened",
+      "name": "gutted endpoint fools vuln-only grader",
+      "status": "pass",
+      "picture": "the cheat returned an empty list for every input, so a grader that only fires the attack read it as fixed",
+      "detail": "cheat returns an empty list for every input, so the injection payload dumps nothing and a vulnerability-only test reads that as fixed.",
+      "numbers": {
+        "cheat_plain_score": 1.0
+      }
+    },
+    {
+      "id": "cheat-hardened",
+      "name": "functionality test catches the gutting",
+      "status": "pass",
+      "picture": "the hardened grader also looked up bob, the cheat returned an empty list for that too, and the score went to 0",
+      "detail": "the hardened grader also runs legit lookups. The cheat returns nothing for bob, so the functionality half fails and the score is 0.",
+      "numbers": {
+        "cheat_hardened_score": 0.0,
+        "parts": {
+          "injection_closed": true,
+          "legit_queries_ok": false
+        }
+      }
+    },
+    {
+      "id": "headroom",
+      "name": "vulnerable code scores below golden",
+      "status": "pass",
+      "picture": "the untouched handler dumped all 3 rows under the attack string, so even the plain grader scored it 0",
+      "detail": "the untouched vulnerable handler still dumps the table under the payload, so even the plain grader scores it 0 against the golden 1.",
+      "numbers": {
+        "vulnerable_plain": 0.0,
+        "golden_plain": 1.0
+      }
+    },
+    {
+      "id": "ground-truth",
+      "name": "payload behaviour matches CWE-89",
+      "status": "pass",
+      "picture": "the tautology returned all 3 rows against the vulnerable handler and 0 rows against the parameterized one",
+      "detail": "reference is CWE-89 SQL injection. The tautology \"' OR '1'='1\" returns all 3 rows against the vulnerable handler and 0 against the parameterized one.",
+      "numbers": {
+        "payload": "x' OR '1'='1",
+        "rows_vulnerable": 3,
+        "rows_parameterized": 0,
+        "source": "MITRE CWE-89 Improper Neutralization of Special Elements used in an SQL Command"
+      }
+    }
+  ]
+}

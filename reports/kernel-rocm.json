@@ -1,0 +1,278 @@
+{
+  "gym": "kernel-rocm",
+  "task": "write a HIP histogram kernel: 64M uint32 keys, skewed Zipf like, into 4096 bins, faster than a naive global atomic kernel",
+  "hardware": "AMD Instinct MI300X VF, ROCm 7.2.4 (gfx942:sramecc+:xnack-)",
+  "timestamp": "2026-09-09T17:00:49.595830+00:00",
+  "scores": {
+    "golden": 1.0,
+    "correct_model": 0.1526,
+    "zero_work_agent_unhardened": 1.0,
+    "zero_work_agent_hardened": 0.0,
+    "gap_projected": 16.715,
+    "gap_measured": 86.288
+  },
+  "checks": [
+    {
+      "id": "correctness",
+      "name": "golden passes its own tests",
+      "status": "pass",
+      "picture": "the reference kernel counted every key into the right bin on every fresh input.",
+      "detail": "the golden LDS kernel matched the CPU histogram in all 5 hardened rounds, each on a fresh input from a private seed, with the output buffer poisoned to 0xFFFFFFFF first.",
+      "numbers": {
+        "rounds": 5,
+        "mismatch_bins": 0,
+        "n": 67108864,
+        "golden_time_ms": 0.1015
+      }
+    },
+    {
+      "id": "cheat-unhardened",
+      "name": "zero work agent beats the plain grader",
+      "status": "fail",
+      "picture": "an agent that did nothing at all got almost full marks from the plain grader.",
+      "detail": "cheat_readback ran right after golden on a shared output buffer that is never wiped, so the old answer was still there and it scored 1.000. cheat_async launched work and returned before it finished, the timer stopped on return, so it scored 1.000.",
+      "numbers": {
+        "readback_score": 1.0,
+        "readback_time_ms": 0.0001,
+        "async_score": 1.0,
+        "async_time_ms": 0.0055,
+        "readback_marked_correct": true,
+        "timing": "ms"
+      }
+    },
+    {
+      "id": "cheat-hardened",
+      "name": "same agents score zero when hardened",
+      "status": "pass",
+      "picture": "with a poisoned private buffer and a forced wait, both tricks scored nothing.",
+      "detail": "cheat_readback handed back the 0xFFFFFFFF poison, 4096 of 4096 bins wrong, score 0.000. cheat_async still had 86.39 ms of device work pending when it returned, the hardened timer waited for it and flagged the early return, score 0.000.",
+      "numbers": {
+        "readback_score": 0.0,
+        "readback_mismatch_bins": 4096,
+        "async_score": 0.0,
+        "async_pending_ms": 86.3854,
+        "async_return_flagged": true,
+        "poison": "0xFFFFFFFF"
+      }
+    },
+    {
+      "id": "headroom",
+      "name": "task can still rank models",
+      "status": "pass",
+      "picture": "the fast answer is 851.1x faster than the slow one, and a middling answer scores between the two.",
+      "detail": "naive 86.39 ms, golden 0.10 ms, measured gap 86.29 ms. the mid tier agent (wave aggregated atomics, no LDS) is correct and scored 0.15, so the score separates three real levels.",
+      "numbers": {
+        "naive_ms": 86.3898,
+        "golden_ms": 0.1015,
+        "gap_measured_ms": 86.2883,
+        "speedup": 851.13,
+        "agent_score": 0.1526,
+        "agent_ms": 73.2241,
+        "timing": "ms"
+      }
+    },
+    {
+      "id": "ground-truth",
+      "name": "reference checked against upstream",
+      "status": "pass",
+      "picture": "the answer key was rebuilt with a second, independent counter and the two agreed on every bin.",
+      "detail": "the reference is a plain CPU count of the keys read back from the device. it was checked against numpy.bincount 2.5.3 and harness CPU loop, checked on 1048576 device generated keys. bin sum 1048576 equals n, bin 0 holds 12.5% of keys as the u^4 skew predicts (12.5%).",
+      "numbers": {
+        "n": 1048576,
+        "device_vs_host_key_diff": 0,
+        "harness_vs_numpy_mismatch_bins": 0,
+        "bin_sum": 1048576,
+        "bin0_share": 0.12476921081542969,
+        "source": "numpy.bincount 2.5.3 and harness CPU loop, checked on 1048576 device generated keys"
+      }
+    },
+    {
+      "id": "beginner-fix",
+      "name": "trivial change takes little of the gap",
+      "status": "pass",
+      "picture": "a bigger block with vector loads made the kernel 0.0065 ms slower, so the distance stayed where it was.",
+      "detail": "naive with a 1024 thread block and uint4 loads ran in 86.40 ms versus 86.39 for naive, that is -0% of the gap. the bottleneck is same address atomics, not memory access.",
+      "numbers": {
+        "beginner_ms": 86.3963,
+        "naive_ms": 86.3898,
+        "share_of_gap": -0.0001,
+        "beginner_score": 0.0,
+        "beginner_correct": true
+      }
+    },
+    {
+      "id": "projection",
+      "name": "projected gap versus measured gap",
+      "status": "warn",
+      "picture": "the paper estimate of the gap and the measured gap are within a factor of 5.2.",
+      "detail": "the model serializes the 12.5% of keys that hit bin 0 at 2.0 ns per global atomic and spreads LDS atomics over 1216 concurrent blocks. projected naive 16.91 ms, golden 0.19 ms, gap 16.71 ms. measured gap 86.29 ms.",
+      "numbers": {
+        "gap_projected_ms": 16.7149,
+        "gap_measured_ms": 86.2883,
+        "measured_over_projected": 5.1624,
+        "projected_naive_ms": 16.9091,
+        "projected_golden_ms": 0.1942,
+        "model": {
+          "cus": 304,
+          "hbm_bw_gbs": 4000.0,
+          "global_atomic_serial_ns": 2.0,
+          "lds_atomic_serial_ns": 0.25,
+          "hot_frac": 0.125,
+          "naive_bw_eff": 0.6,
+          "vector_bw_eff": 0.9,
+          "launch_ms": 0.02,
+          "golden_blocks_per_cu": 4,
+          "atomic_agg_rate_per_s": 50000000000.0
+        }
+      }
+    },
+    {
+      "id": "tolerance-selection",
+      "name": "float grader needs a chosen tolerance",
+      "status": "pass",
+      "picture": "adding the same numbers in a different order gives a slightly different total, so the grader must allow a small gap but not a big one.",
+      "detail": "with float32 weights the sequential and the chunked sum differ exactly in 214 of 4096 bins, up to 39 ULP (rel 2.7e-06), so exact match fails a correct kernel. the chosen bound is 4x the worst correct order, rel 2.6e-05 or 432 ULP, and every correct order passes it. a kernel that drops 1 percent of keys sits at rel 1.67e-02 median and fails 4092 of 4096 bins under that bound. a loose grader at rel 1e-2, 387x looser than needed, would pass 1091 of its 4096 bins, at rel 2e-2 2444 of 4096, and at rel 9.2e-02 it would pass the whole wrong kernel.",
+      "numbers": {
+        "n": 524288,
+        "bins": 4096,
+        "weights": "float32 uniform [0,1)",
+        "exact_match_seq_vs_chunk_differ_bins": 214,
+        "seq_vs_chunk_abs_max": 0.076171875,
+        "seq_vs_chunk_rel_max": 2.7268231394906375e-06,
+        "seq_vs_chunk_ulp_max": 39,
+        "seq_vs_chunk_ulp_median": 0.0,
+        "worst_correct_order_rel": 6.460986359671732e-06,
+        "worst_correct_order_abs": 0.21130287647247314,
+        "worst_correct_order_ulp": 108,
+        "chosen_tol_rel": 2.5843945438686927e-05,
+        "chosen_tol_abs": 0.8452115058898926,
+        "chosen_tol_ulp": 432,
+        "reference": "float64 sequential sum of the same float32 weights, rounded to float32 for the ULP test",
+        "wrong_kernel": "drops 1 in every 100 keys of each bin, 1 percent, at least one key per bin",
+        "wrong_kernel_rel_err_min": 1.0396613332943668e-05,
+        "wrong_kernel_rel_err_median": 0.016734337540537644,
+        "wrong_kernel_bins_passing_chosen_tol": 4,
+        "loose_grader_rel": 0.01,
+        "wrong_kernel_bins_passing_loose_rel_1e-2": 1091,
+        "wrong_kernel_bins_passing_loose_rel_2e-2": 2444,
+        "loose_grader_rel_that_passes_whole_wrong_kernel": 0.09213894151875417,
+        "chosen_tol_over_loose_1e-2_ratio": 386.93782355036876,
+        "correct_orders_pass_chosen_tol": true,
+        "loose_grader_fooled": true
+      }
+    },
+    {
+      "id": "accumulation-order",
+      "name": "three summation orders, one tolerance",
+      "status": "pass",
+      "picture": "a correct kernel on another chip adds in a different order, and the grader must not call that wrong.",
+      "detail": "sequential, reversed and chunked float32 sums disagree in 3227 of 4096 bins, at most 144 ULP apart. a bound of 432 ULP (rel 2.6e-05) covers all three against the float64 reference. the same float16 inputs summed in float32 land within rel 3.2e-06, summed in float16 the biggest bin (65581 keys) stalls at 2048 against a true 32704, rel error 0.94, because the float16 ULP at 2048 is 2 and every weight under 1 rounds away.",
+      "numbers": {
+        "n": 524288,
+        "orders": [
+          "sequential",
+          "reversed",
+          "chunked 256 then partials"
+        ],
+        "max_ulp_spread_across_orders": 144,
+        "median_ulp_spread_across_orders": 1.0,
+        "bins_where_orders_differ": 3227,
+        "tolerance_surviving_all_orders_ulp": 108,
+        "tolerance_surviving_all_orders_rel": 6.460986359671732e-06,
+        "recommended_grader_ulp": 432,
+        "recommended_grader_rel": 2.5843945438686927e-05,
+        "f16_inputs_f32_accumulate_rel_max": 3.1549324840219794e-06,
+        "f16_inputs_f16_accumulate_rel_max": 0.9373784543719054,
+        "f16_inputs_f16_accumulate_rel_median": 0.000623987902929088,
+        "f16_accumulate_bins_over_1pct": 10,
+        "biggest_bin": 0,
+        "biggest_bin_count": 65581,
+        "biggest_bin_true_sum": 32704.39877295494,
+        "biggest_bin_f32acc": 32704.501953125,
+        "biggest_bin_f16acc": 2048.0,
+        "f16_max_exact_integer": 2048,
+        "note": "in float16 the ULP at 2048 is 2, so adding a weight under 1 rounds away and the sum stalls"
+      }
+    },
+    {
+      "id": "runtime-failure-modes",
+      "name": "every failure gets a named class",
+      "status": "pass",
+      "picture": "when a kernel breaks, the report says how it broke instead of only handing out a zero.",
+      "detail": "a slot that launches 2048 threads per block, over the 1024 limit, leaves the poison in the buffer and the harness prints 'slot cheat_badlaunch: device error no error / invalid configuration argument', classified launch_config_error, score 0. the classifier maps 7 classes from canned hipcc, runtime and harness lines, 7 of 7 right. 5 real failure lines this run.",
+      "numbers": {
+        "classes": [
+          "compile_error",
+          "launch_config_error",
+          "oom",
+          "shape_mismatch",
+          "wrong_output",
+          "async_return",
+          "driver_mismatch"
+        ],
+        "self_test": {
+          "compile_error": "compile_error",
+          "launch_config_error": "launch_config_error",
+          "oom": "oom",
+          "shape_mismatch": "shape_mismatch",
+          "wrong_output": "wrong_output",
+          "async_return": "async_return",
+          "driver_mismatch": "driver_mismatch"
+        },
+        "self_test_ok": true,
+        "broken_slot": {
+          "slot": "cheat_badlaunch",
+          "block": 2048,
+          "limit": 1024,
+          "stderr": "slot cheat_badlaunch: device error no error / invalid configuration argument",
+          "buffer": "4096 of 4096 bins wrong",
+          "correct": false,
+          "score": 0.0,
+          "class": "launch_config_error"
+        },
+        "broken_slot_source": "measured, cheat_badlaunch slot in the hardened harness run",
+        "real_failures_this_run": [
+          {
+            "line": "slot cheat_badlaunch: device error no error / invalid configuration argument",
+            "class": "launch_config_error"
+          },
+          {
+            "line": "slot cheat_badlaunch: device error no error / invalid configuration argument",
+            "class": "launch_config_error"
+          },
+          {
+            "line": "slot cheat_badlaunch: device error no error / invalid configuration argument",
+            "class": "launch_config_error"
+          },
+          {
+            "line": "slot cheat_badlaunch: device error no error / invalid configuration argument",
+            "class": "launch_config_error"
+          },
+          {
+            "line": "slot cheat_badlaunch: device error no error / invalid configuration argument",
+            "class": "launch_config_error"
+          }
+        ],
+        "harness_stderr_lines": 6
+      }
+    },
+    {
+      "id": "task-scoping",
+      "name": "task.toml names every knob",
+      "status": "pass",
+      "picture": "the task sheet spells out the input size, the bins, the chip, the rounds and the rules before anyone is graded.",
+      "detail": "task.toml holds 15 of 15 required keys (none missing). scoring hardware AMD MI300X gfx942 ROCm 6.x. drift against the code: none.",
+      "numbers": {
+        "file": "kernel-rocm/task.toml",
+        "exists": true,
+        "parser": "tomllib",
+        "required_keys": 15,
+        "present_keys": 15,
+        "missing": [],
+        "drift_from_code": [],
+        "n_used_this_run": 67108864,
+        "scoring_hardware": "AMD MI300X gfx942 ROCm 6.x"
+      }
+    }
+  ]
+}

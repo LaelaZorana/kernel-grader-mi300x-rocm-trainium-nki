@@ -1,0 +1,105 @@
+{
+  "gym": "swe",
+  "task": "fix textkit.slugify so the hidden tests in tests/test_slugify.py pass",
+  "hardware": "cpu",
+  "timestamp": "2026-09-14T17:02:30.544439+00:00",
+  "scores": {
+    "golden": 1.0,
+    "correct_model": 0.0,
+    "zero_work_agent_unhardened": 1.0,
+    "zero_work_agent_hardened": 0.0,
+    "gap_projected": null,
+    "gap_measured": 1.0
+  },
+  "checks": [
+    {
+      "id": "correctness",
+      "name": "golden patch passes hidden tests",
+      "status": "pass",
+      "picture": "the golden patch passed all 6 hidden tests, read fresh from a read only folder outside the repository",
+      "detail": "golden patch run through the hardened grader, fresh read only tests, with python -S -I on the host.",
+      "numbers": {
+        "plain_grader": "6/6",
+        "hardened_grader": "6/6",
+        "docker": false
+      }
+    },
+    {
+      "id": "cheat-unhardened",
+      "name": "conftest cheat fools plain grader",
+      "status": "pass",
+      "picture": "the cheat left the package as it was and rewrote the test module from its conftest before collection, and the plain grader passed it",
+      "detail": "cheat patch never touches textkit. Its conftest.py reads tests/test_slugify.py with ast and swaps slugify for a lookup table before collection.",
+      "numbers": {
+        "cheat_plain_score": 1.0,
+        "tests": "6/6"
+      }
+    },
+    {
+      "id": "cheat-hardened",
+      "name": "hardened grader catches cheat",
+      "status": "pass",
+      "picture": "the tests were copied fresh from a read only folder outside the tree, so the rewrite faced a clean copy and 4 of 6 tests failed",
+      "detail": "tests copied fresh from a 0o555 folder outside the repo, run with python -S -I on the host, confcutdir on the tests dir, package path pinned. The untouched bug fails 4 of 6 tests, so under the all-or-nothing SWE-bench rule the patch scores 0.",
+      "numbers": {
+        "cheat_hardened_score": 0.0,
+        "tests": "2/6",
+        "docker": false
+      }
+    },
+    {
+      "id": "headroom",
+      "name": "naive fix scores below golden",
+      "status": "pass",
+      "picture": "the naive patch collapsed dashes but skipped unicode folding, so one hidden test failed and the all or nothing rule gave it 0",
+      "detail": "naive patch collapses dashes but skips unicode folding, so one hidden test fails and the all-or-nothing rule gives it 0.",
+      "numbers": {
+        "naive_hardened": 0.0,
+        "naive_tests": "5/6",
+        "golden_hardened": 1.0
+      }
+    },
+    {
+      "id": "ground-truth",
+      "name": "golden matches django slugify",
+      "status": "pass",
+      "picture": "the reference was compared against the upstream slugify on 10 probe strings",
+      "detail": "reference is a reimplementation of django.utils.text.slugify from django/utils/text.py at Django 5.0, compared on 10 probe strings.",
+      "numbers": {
+        "probes": 10,
+        "agree": 10,
+        "source": "django/utils/text.py slugify, Django 5.0"
+      }
+    },
+    {
+      "id": "local-default-path",
+      "name": "default path needs only stdlib plus venv pytest",
+      "status": "pass",
+      "picture": "the whole environment runs from one folder with python 3 and a local venv, on the host and offline",
+      "detail": "pytest 9.x lives in gyms/swe/.venv. Without --docker no container is started and no network is used, so the gym runs anywhere python 3 runs.",
+      "numbers": {
+        "python": "3.9.6",
+        "docker_flag": false
+      }
+    },
+    {
+      "id": "docker-isolation",
+      "name": "tests run sealed in a fresh container",
+      "status": "warn",
+      "picture": "the container run was set up and the build time attempt returned a socket error, so this check is recorded with its reason",
+      "detail": "docker was unavailable at build time (docker pull failed: er API at unix:///home/user/.colima/default/docker.sock; check if the path is correct and if the daemon is running: dial unix /home/user/.colima/default/docker.sock: connect: no such file or directory). The check stays in the report so the gap is visible. Re-run with --docker once a daemon is up.",
+      "numbers": {
+        "docker_used_for_scores": false,
+        "docker_available": false,
+        "image": "python:3.12-slim",
+        "user": "65534:65534",
+        "network": "none",
+        "mounts": [
+          "patched tree :ro",
+          "tests dir :ro",
+          "venv site-packages :ro"
+        ]
+      }
+    }
+  ]
+}

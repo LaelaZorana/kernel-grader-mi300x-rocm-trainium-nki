@@ -1,0 +1,45 @@
+# Deny everything, then allow only the published set.
+# A blocklist misses whatever arrives next. This cannot.
+*
+
+# Repository front matter
+!.gitignore
+!LICENSE
+!NOTICE
+!README.md
+!REPORT_SCHEMA.md
+!app.py
+!build_dataset.py
+!tests_source_matches_repo.py
+!requirements.txt
+
+# Published directories and their contents
+!gyms/
+!gyms/**
+!kernel-nki/
+!kernel-nki/**
+!kernel-rocm/
+!kernel-rocm/**
+!dashboard/
+!dashboard/**
+!reports/
+!reports/**
+!dataset/
+!dataset/**
+
+# Working material inside those directories stays out
+gyms/**/.venv/
+gyms/**/.docker-tmp/
+kernel-nki/*.tgz
+kernel-rocm/*.md
+kernel-rocm/*.o
+kernel-rocm/harness
+kernel-rocm/harness_*.json
+kernel-rocm/ref_dump.bin
+dashboard/*.png
+reports/_*.json
+
+# Build products
+__pycache__/
+*.pyc
+.DS_Store

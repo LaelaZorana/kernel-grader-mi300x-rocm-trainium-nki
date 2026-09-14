@@ -1,0 +1,24 @@
+kernel-grader-mi300x
+Copyright 2026 Laela Zorana
+
+Seven graded environments, each carrying a plain grader and a hardened one, and
+the measurements that set their tolerances.
+
+The kernel numbers were measured by Laela Zorana on an AMD Instinct MI300X VF,
+gfx942, under ROCm 7.2.4. One global atomic per key measured 86.3898 ms and the
+version privatised into local data share measured 0.1015 ms, a factor of 851.13,
+on the same card in the same run.
+
+The tolerance bound of 432 units in the last place comes from a measured worst
+correct accumulation order of 108 on that card. The same bound was then carried
+onto an AWS Trainium NeuronCore of a trn1.2xlarge, where 0 of 4096 bins went
+over it at any of four seeds.
+
+The per bin dataset in dataset/nki_bins.jsonl holds 16384 rows produced by those
+two runs, one row per bin per seed, with the simulator value and the device
+value side by side.
+
+The three files under dataset/ are released under CC BY 4.0 rather than Apache 2.0, and carry their
+own card in that folder.
+
+Section 4 of the licence asks that this file travel with any derivative work.

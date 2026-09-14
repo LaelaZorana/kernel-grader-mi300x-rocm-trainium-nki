@@ -1,0 +1,54 @@
+{
+  "seeds": [
+    {
+      "seed": 3,
+      "bins": 4096,
+      "identical_sim_vs_device": 890,
+      "differing_sim_vs_device": 3206,
+      "max_ulp_gap": 8.0,
+      "median_ulp_gap": 1.0,
+      "bins_over_432_ulp": 0,
+      "device_bit_exact_vs_reference": 891,
+      "sim_bit_exact_vs_reference": 2642
+    },
+    {
+      "seed": 7,
+      "bins": 4096,
+      "identical_sim_vs_device": 904,
+      "differing_sim_vs_device": 3192,
+      "max_ulp_gap": 8.0,
+      "median_ulp_gap": 1.0,
+      "bins_over_432_ulp": 0,
+      "device_bit_exact_vs_reference": 942,
+      "sim_bit_exact_vs_reference": 2664
+    },
+    {
+      "seed": 11,
+      "bins": 4096,
+      "identical_sim_vs_device": 921,
+      "differing_sim_vs_device": 3175,
+      "max_ulp_gap": 10.0,
+      "median_ulp_gap": 1.0,
+      "bins_over_432_ulp": 0,
+      "device_bit_exact_vs_reference": 951,
+      "sim_bit_exact_vs_reference": 2671
+    },
+    {
+      "seed": 19,
+      "bins": 4096,
+      "identical_sim_vs_device": 875,
+      "differing_sim_vs_device": 3221,
+      "max_ulp_gap": 9.0,
+      "median_ulp_gap": 1.0,
+      "bins_over_432_ulp": 0,
+      "device_bit_exact_vs_reference": 904,
+      "sim_bit_exact_vs_reference": 2707
+    }
+  ],
+  "determinism": {
+    "same_core_run_to_run_identical_bins": 4096,
+    "same_core_run_to_run_differing_bins": 0,
+    "core0_vs_core1_identical_bins": 4096,
+    "core0_vs_core1_differing_bins": 0
+  }
+}

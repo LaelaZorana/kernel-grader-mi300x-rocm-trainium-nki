@@ -1,0 +1,236 @@
+{
+  "gym": "nki-sim",
+  "task": "write an NKI kernel that sums float32 weights per bin, 4096 bins x 128 weights (n 524288), the per bin sums of the histogram audit, run in the neuron cpu simulator",
+  "hardware": "AWS Trainium trn1.2xlarge NeuronCore and the AWS Neuron NKI CPU simulator, neuronx-cc 2.27.5334.0+f702b353, nki 0.6.0+31049202112.g85070674",
+  "timestamp": "2026-09-09T17:43:24.190114+00:00",
+  "scores": {
+    "golden": 1.0,
+    "correct_model": null,
+    "zero_work_agent_unhardened": null,
+    "zero_work_agent_hardened": null,
+    "gap_projected": null,
+    "gap_measured": null
+  },
+  "checks": [
+    {
+      "id": "correctness",
+      "name": "golden passes its own tests",
+      "status": "pass",
+      "picture": "the kernel added up every bin and every total sat within a hair of the exact answer, on two fresh inputs.",
+      "detail": "the nki bin sum kernel ran in the cpu simulator on seeds 3 and 7. against a float64 reference the worst bin is 2 ULP off (rel 1.78e-07), 0 of 4096 bins over the 432 ULP bound, 2642 of 4096 bins bit exact. the quickstart tensor add kernel matched numpy float32 bit for bit on 65536 elements.",
+      "numbers": {
+        "seeds": [
+          3,
+          7
+        ],
+        "bins": 4096,
+        "keys_per_bin": 128,
+        "n": 524288,
+        "tiles": 32,
+        "abs_max": 1.1563301086425781e-05,
+        "rel_max": 1.77697220727352e-07,
+        "ulp_max": 2.0,
+        "ulp_median": 0.0,
+        "bins_over_432_ulp": 0,
+        "bins_over_rel_tol": 0,
+        "exact_match_bins": 2642,
+        "seed7_ulp_max": 2.0,
+        "seed7_rel_max": 1.5478416065474836e-07,
+        "tensor_add_elements": 65536,
+        "tensor_add_bit_exact": true,
+        "sim_wall_s_bin_sum": 0.018219201999727375,
+        "sim_wall_s_tensor_add": 0.006627482999647327,
+        "reference": "numpy float64 sequential sum of the same float32 weights",
+        "api": "nki.simulate(kernel)(numpy arrays)"
+      }
+    },
+    {
+      "id": "cheat-unhardened",
+      "name": "zero work agent against plain grader",
+      "status": "warn",
+      "picture": "no grader was built for the simulator yet, so no cheat was tried.",
+      "detail": "the mi300x gym holds the readback and async cheats. the simulator hands back fresh numpy arrays, so the shared buffer readback cheat does not exist here, and a device side timing cheat needs a device.",
+      "numbers": {
+        "grader_built": false
+      }
+    },
+    {
+      "id": "cheat-hardened",
+      "name": "same agent against hardened grader",
+      "status": "warn",
+      "picture": "same as above, nothing to harden until a grader exists.",
+      "detail": "parked until the trainium quota lands and the harness can run on a NeuronCore.",
+      "numbers": {
+        "grader_built": false
+      }
+    },
+    {
+      "id": "headroom",
+      "name": "task can still rank models",
+      "status": "warn",
+      "picture": "speed cannot be measured in a cpu simulator, so ranking waits for hardware.",
+      "detail": "the simulator runs the kernel as python and numpy, its wall time says nothing about a NeuronCore. correctness ranks are possible now, speed ranks are not.",
+      "numbers": {
+        "sim_wall_s_bin_sum": 0.018219201999727375,
+        "timing_meaningful": false
+      }
+    },
+    {
+      "id": "ground-truth",
+      "name": "reference checked against upstream",
+      "status": "pass",
+      "picture": "the answer key is a plain float64 sum of the same weights, and every bin total also adds up to the grand total.",
+      "detail": "reference is numpy 2.5.3 float64 sequential sum of the same float32 weights. grand total of the nki bins 262003.621254 against reference 262003.621367. the tensor add kernel and the simulate call follow the neuron docs quickstart and nki.simulate_kernel pages read live on 2026-09-09.",
+      "numbers": {
+        "numpy": "2.5.3",
+        "sum_of_all_bins_nki": 262003.62125396729,
+        "sum_of_all_bins_ref": 262003.6213670373,
+        "source": "awsdocs-neuron.readthedocs-hosted.com nki quickstart and nki.simulate_kernel, read 2026-09-09"
+      }
+    },
+    {
+      "id": "accumulation-order",
+      "name": "four summation orders, one tolerance",
+      "status": "pass",
+      "picture": "the card and the simulator add the same numbers in a different order, and both stay inside the bound.",
+      "detail": "sequential, reversed, chunked and the nki simulator disagree in 3954 of 4096 bins, at most 13 ULP apart. the nki result is bit exact with neither the sequential nor the chunked numpy sum. the 432 ULP bound covers all four. on the card the same kernel is bit exact with the numpy sequential sum at every seed, while the simulator matches neither order, so the two disagree in about 78 percent of bins by at most 10 ULP.",
+      "numbers": {
+        "orders": [
+          "sequential",
+          "reversed",
+          "chunked_16_then_8",
+          "nki_sim"
+        ],
+        "ulp_max_per_order": {
+          "sequential": 8.0,
+          "reversed": 8.0,
+          "chunked_16_then_8": 2.0,
+          "nki_sim": 2.0
+        },
+        "rel_max_per_order": {
+          "sequential": 5.387302131992945e-07,
+          "reversed": 5.991291732576189e-07,
+          "chunked_16_then_8": 1.4206276795311905e-07,
+          "nki_sim": 1.77697220727352e-07
+        },
+        "bins_where_orders_differ": 3954,
+        "max_ulp_spread_across_orders": 13.0,
+        "nki_matches_sequential_bit_exact": false,
+        "nki_matches_chunked_bit_exact": false,
+        "all_orders_pass_chosen_tol": true,
+        "device_matches_sequential_bit_exact": true,
+        "device_ulp_max_vs_reference": 8.0
+      }
+    },
+    {
+      "id": "tolerance-selection",
+      "name": "the chosen bound still catches a wrong kernel",
+      "status": "pass",
+      "picture": "a kernel that drops one weight per bin fails almost every bin under the same bound the mi300x audit chose.",
+      "detail": "the bound is 432 ULP, rel 2.58e-05, carried over from the mi300x audit. the correct kernel passes 4096 of 4096 bins. a kernel that drops the last of 128 weights in every bin fails 4090 of 4096 bins, median error 86472 ULP (rel 7.64e-03). the 6 bins that pass dropped a weight under about 3e-4.",
+      "numbers": {
+        "tol_ulp": 432,
+        "tol_rel": 2.5843945438686927e-05,
+        "correct_bins_passing": 4096,
+        "wrong_kernel": "same kernel over 127 of 128 weights per bin",
+        "wrong_bins_failing": 4090,
+        "wrong_bins_passing": 6,
+        "wrong_ulp_median": 86472.0,
+        "wrong_rel_median": 0.0076406552651620985,
+        "wrong_rel_max": 0.017898629007950487,
+        "wrong_abs_max": 0.9995641112327576
+      }
+    },
+    {
+      "id": "timing",
+      "name": "the kernel ran on a NeuronCore",
+      "status": "pass",
+      "picture": "the same kernel ran on a trainium card at four seeds, and the card answered every time.",
+      "detail": "the kernel ran on one NeuronCore of a trn1.2xlarge at seeds 3, 7, 11 and 19, plus a repeat at seed 3 and a run pinned to the second core. wall time on the card is 1.36 to 1.44 s against 0.018 s in the simulator, and neither number is a kernel speed, because both include compile and dispatch. a speed ranking still needs a timed harness.",
+      "numbers": {
+        "neuron_device_present": true,
+        "neuron_devices": 1,
+        "neuron_cores": 2,
+        "instance_type": "trn1.2xlarge",
+        "device_runs": 6,
+        "device_wall_s_seed3": 1.4425450999999612,
+        "device_wall_s_seed7": 1.3622871210000085,
+        "machine": "x86_64",
+        "python": "3.12.3"
+      }
+    },
+    {
+      "id": "simulator-vs-device",
+      "name": "the simulator and the card disagree, and by how much",
+      "status": "pass",
+      "picture": "the same kernel on the same input returned different numbers in the simulator and on the card.",
+      "detail": "four seeds, 4096 bins each, with a sha256 of the weight bytes recorded on both paths and matching on every pair. between 3175 and 3221 of 4096 bins differ, the worst gap is 10 ULP and the median is 1 ULP, and 0 bins go over the 432 ULP bound on either path. the simulator sits closer to the float64 reference, 2 ULP worst against the card's 8, because the card reproduces the sequential order and the simulator does not.",
+      "numbers": {
+        "seeds": [
+          3,
+          7,
+          11,
+          19
+        ],
+        "bins_per_seed": 4096,
+        "input_sha256_matched_on_every_pair": true,
+        "bins_differing": {
+          "3": 3206,
+          "7": 3192,
+          "11": 3175,
+          "19": 3221
+        },
+        "bins_identical": {
+          "3": 890,
+          "7": 904,
+          "11": 921,
+          "19": 875
+        },
+        "max_ulp_gap": {
+          "3": 8.0,
+          "7": 8.0,
+          "11": 10.0,
+          "19": 9.0
+        },
+        "median_ulp_gap": {
+          "3": 1.0,
+          "7": 1.0,
+          "11": 1.0,
+          "19": 1.0
+        },
+        "bins_over_432_ulp": {
+          "3": 0,
+          "7": 0,
+          "11": 0,
+          "19": 0
+        },
+        "device_bit_exact_vs_reference": {
+          "3": 891,
+          "7": 942,
+          "11": 951,
+          "19": 904
+        },
+        "sim_bit_exact_vs_reference": {
+          "3": 2642,
+          "7": 2664,
+          "11": 2671,
+          "19": 2707
+        }
+      }
+    },
+    {
+      "id": "device-determinism",
+      "name": "the card repeats itself, and both cores agree",
+      "status": "pass",
+      "picture": "running the same seed twice on the card returned the same 4096 numbers, and so did the other core.",
+      "detail": "a grader that cannot reproduce a number cannot fail anyone with it. the same seed run twice on one NeuronCore returned 4096 of 4096 bins identical, and the run pinned to the second core returned 4096 of 4096 identical to the first. so the only divergence is against the host simulator, and it is bounded.",
+      "numbers": {
+        "same_core_run_to_run_identical_bins": 4096,
+        "same_core_run_to_run_differing_bins": 0,
+        "core0_vs_core1_identical_bins": 4096,
+        "core0_vs_core1_differing_bins": 0,
+        "cores_tested": 2
+      }
+    }
+  ]
+}

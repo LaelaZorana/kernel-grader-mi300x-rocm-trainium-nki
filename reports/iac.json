@@ -1,0 +1,110 @@
+{
+  "gym": "iac",
+  "task": "wire a Lambda to an SQS queue with a working DLQ and least privilege IAM",
+  "hardware": "cpu",
+  "timestamp": "2026-09-14T17:02:30.646424+00:00",
+  "scores": {
+    "golden": 1.0,
+    "correct_model": 0.0,
+    "zero_work_agent_unhardened": 1.0,
+    "zero_work_agent_hardened": 0.0,
+    "gap_projected": null,
+    "gap_measured": 1.0
+  },
+  "checks": [
+    {
+      "id": "correctness",
+      "name": "golden passes the wiring checks",
+      "status": "pass",
+      "picture": "the golden template wired the redrive policy to the dead letter queue arn and scoped three actions to one queue arn",
+      "detail": "golden attaches the RedrivePolicy to the DLQ arn, grants only the three sqs actions on the one queue arn and sets maxReceiveCount 5.",
+      "numbers": {
+        "golden_names": 1.0,
+        "golden_hardened": 1.0,
+        "parts": {
+          "dlq_attached": true,
+          "no_wildcard": true,
+          "retry_ok": true,
+          "dlq_detail": "RedrivePolicy targets WorkDLQ Arn",
+          "wildcard_hits": [],
+          "retry_detail": "maxReceiveCount 5"
+        }
+      }
+    },
+    {
+      "id": "cheat-unhardened",
+      "name": "name check passes the wildcard template",
+      "status": "pass",
+      "picture": "the cheat kept all three resource names, so a grader that only checks which names are present passed it",
+      "detail": "cheat keeps the names WorkQueue, WorkDLQ and Worker, so a grader that only checks names present scores it a full pass.",
+      "numbers": {
+        "cheat_names_score": 1.0
+      }
+    },
+    {
+      "id": "cheat-hardened",
+      "name": "parser catches wildcard and missing DLQ",
+      "status": "pass",
+      "picture": "the hardened grader parsed the yaml and found a wildcard action, a wildcard resource and a queue whose redrive policy is missing",
+      "detail": "the hardened grader parses the yaml and finds Action \"*\" Resource \"*\" and no RedrivePolicy on the queue, so the DLQ is not wired and the score is 0.",
+      "numbers": {
+        "cheat_hardened_score": 0.0,
+        "parts": {
+          "dlq_attached": false,
+          "no_wildcard": false,
+          "retry_ok": false,
+          "dlq_detail": "WorkQueue has no RedrivePolicy",
+          "wildcard_hits": [
+            "Worker Action *",
+            "Worker Resource *"
+          ],
+          "retry_detail": "maxReceiveCount missing"
+        }
+      }
+    },
+    {
+      "id": "headroom",
+      "name": "naive correct template scores below golden",
+      "status": "pass",
+      "picture": "the naive template wired the queue correctly but set maxReceiveCount to 1, so one transient failure dead letters a message",
+      "detail": "naive wires the DLQ and avoids wildcards but sets maxReceiveCount 1, so one transient failure dead letters a message. The retry check scores it below golden.",
+      "numbers": {
+        "naive_hardened": 0.0,
+        "golden_hardened": 1.0,
+        "parts": {
+          "dlq_attached": true,
+          "no_wildcard": true,
+          "retry_ok": false,
+          "dlq_detail": "RedrivePolicy targets WorkDLQ Arn",
+          "wildcard_hits": [],
+          "retry_detail": "maxReceiveCount 1 retries too eagerly to the DLQ"
+        }
+      }
+    },
+    {
+      "id": "ground-truth",
+      "name": "checks match SQS redrive and IAM references",
+      "status": "pass",
+      "picture": "the redrive policy and maxReceiveCount fields were checked against the queue reference and the least privilege guidance",
+      "detail": "RedrivePolicy and maxReceiveCount follow the SQS dead letter queue reference. The wildcard rule follows the IAM least privilege guidance that Action and Resource should be scoped, not \"*\".",
+      "numbers": {
+        "source": "AWS SQS RedrivePolicy dead-letter-queue docs; AWS IAM least-privilege guidance",
+        "golden_hardened": 1.0,
+        "cheat_hardened": 0.0
+      }
+    },
+    {
+      "id": "localstack-fidelity",
+      "name": "sandbox vs real aws gap",
+      "status": "warn",
+      "picture": "two behaviours the community emulator leaves unenforced, so a template that passes there can still fail on the real service",
+      "detail": "two behaviours localstack community does not enforce, so a template that passes there can still fail on real aws.",
+      "numbers": {
+        "gaps": [
+          "IAM policy evaluation is not enforced by default in LocalStack community, so an over broad or wildcard policy still lets calls through",
+          "SQS RedrivePolicy is accepted but dead letter redrive after maxReceiveCount is not faithfully triggered, so a broken DLQ wiring can look fine"
+        ]
+      }
+    }
+  ]
+}

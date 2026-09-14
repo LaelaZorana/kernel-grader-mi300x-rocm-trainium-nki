@@ -1,0 +1,13 @@
+# Everything the seven environments need to run and report.
+# Verified by installing into a clean virtual environment and running the suite.
+
+numpy>=1.24          # ml, kernel-rocm and kernel-nki
+pyyaml>=6.0          # iac and k8s parse manifests rather than grepping them
+scikit-learn>=1.3    # ml trains and cross validates the classifier
+tomli>=2.0 ; python_version < "3.11"   # kernel-rocm reads task.toml, stdlib from 3.11
+
+# The Space front end. Not needed to run the suite from a terminal.
+gradio>=6.16
+
+# The NKI environment additionally needs neuronx-cc and nki from the Neuron
+# package index, which kernel-nki/README.md gives the commands for.

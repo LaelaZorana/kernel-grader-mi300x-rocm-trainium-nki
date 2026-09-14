@@ -1,0 +1,111 @@
+{
+  "seed": 19,
+  "python": "3.12.3",
+  "machine": "x86_64",
+  "numpy": "2.5.2",
+  "nki": "0.6.0+31049202112.g85070674",
+  "execution": "device",
+  "neuronx_cc": "2.27.5334.0+f702b353",
+  "tensor_add": {
+    "shape": [
+      128,
+      512
+    ],
+    "sim_wall_s": 7.855961899000022,
+    "abs_max": 5.960464477539063e-08,
+    "abs_median": 0.0,
+    "rel_max": 5.960120239465711e-08,
+    "rel_median": 0.0,
+    "ulp_max": 0.0,
+    "ulp_median": 0.0,
+    "bins_over_432_ulp": 0,
+    "bins_over_rel_tol": 0,
+    "exact_match_bins": 65536,
+    "count": 65536,
+    "bit_exact_vs_float32_numpy": true
+  },
+  "input_sha256": "dfc199a4de3974aa98cde80a79a880c449b505aa9c48f974f1d22fd0a3bb6984",
+  "bin_sum": {
+    "bins": 4096,
+    "keys_per_bin": 128,
+    "n": 524288,
+    "tiles": 32,
+    "sim_wall_s": 1.371487620000039,
+    "reference": "numpy float64 sequential sum of the same float32 weights",
+    "tol_ulp": 432,
+    "tol_rel": 2.5843945438686927e-05,
+    "orders": {
+      "sequential": {
+        "abs_max": 3.8564205169677734e-05,
+        "abs_median": 6.67572021484375e-06,
+        "rel_max": 5.68708123409167e-07,
+        "rel_median": 1.052470794871127e-07,
+        "ulp_max": 8.0,
+        "ulp_median": 1.0,
+        "bins_over_432_ulp": 0,
+        "bins_over_rel_tol": 0,
+        "exact_match_bins": 904,
+        "count": 4096
+      },
+      "reversed": {
+        "abs_max": 3.8623809814453125e-05,
+        "abs_median": 6.496906280517578e-06,
+        "rel_max": 5.955256656894336e-07,
+        "rel_median": 1.0292767956878407e-07,
+        "ulp_max": 9.0,
+        "ulp_median": 1.0,
+        "bins_over_432_ulp": 0,
+        "bins_over_rel_tol": 0,
+        "exact_match_bins": 926,
+        "count": 4096
+      },
+      "chunked_16_then_8": {
+        "abs_max": 9.059906005859375e-06,
+        "abs_median": 1.7285346984863281e-06,
+        "rel_max": 1.3230467792504734e-07,
+        "rel_median": 2.752949274461057e-08,
+        "ulp_max": 2.0,
+        "ulp_median": 0.0,
+        "bins_over_432_ulp": 0,
+        "bins_over_rel_tol": 0,
+        "exact_match_bins": 2865,
+        "count": 4096
+      },
+      "nki_sim": {
+        "abs_max": 3.8564205169677734e-05,
+        "abs_median": 6.67572021484375e-06,
+        "rel_max": 5.68708123409167e-07,
+        "rel_median": 1.052470794871127e-07,
+        "ulp_max": 8.0,
+        "ulp_median": 1.0,
+        "bins_over_432_ulp": 0,
+        "bins_over_rel_tol": 0,
+        "exact_match_bins": 904,
+        "count": 4096
+      }
+    },
+    "bins_where_orders_differ": 3885,
+    "max_ulp_spread_across_orders": 12.0,
+    "nki_sim_matches_sequential_bit_exact": true,
+    "nki_sim_matches_chunked_bit_exact": false,
+    "all_orders_pass_chosen_tol": true,
+    "sum_of_all_bins_nki": 261701.7068748474,
+    "sum_of_all_bins_ref": 261701.7083799839
+  },
+  "wrong_kernel_drop_one_key": {
+    "sim_wall_s": 1.3697923289998926,
+    "abs_max": 1.0000047087669373,
+    "abs_median": 0.5083313882350922,
+    "rel_max": 0.017848607615600465,
+    "rel_median": 0.007916427279428855,
+    "ulp_max": 262066.0,
+    "ulp_median": 88383.0,
+    "bins_over_432_ulp": 4086,
+    "bins_over_rel_tol": 4090,
+    "exact_match_bins": 0,
+    "count": 4096,
+    "bins_failing_chosen_tol": 4090,
+    "note": "a bin whose dropped weight is under about 3e-4 stays inside the bound, so a few bins pass"
+  },
+  "bins_out": "/home/ubuntu/out/device_seed19_bins.npz"
+}

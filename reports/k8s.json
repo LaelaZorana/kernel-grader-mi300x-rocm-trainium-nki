@@ -1,0 +1,88 @@
+{
+  "gym": "k8s",
+  "task": "write a v1.28 CronJob manifest with correct startingDeadlineSeconds and concurrencyPolicy",
+  "hardware": "cpu",
+  "timestamp": "2026-09-14T17:02:30.609465+00:00",
+  "scores": {
+    "golden": 1.0,
+    "correct_model": 0.0,
+    "zero_work_agent_unhardened": 1.0,
+    "zero_work_agent_hardened": 0.0,
+    "gap_projected": null,
+    "gap_measured": 1.0
+  },
+  "checks": [
+    {
+      "id": "correctness",
+      "name": "golden passes the v1.28 grader",
+      "status": "pass",
+      "picture": "the corrected grader accepted the golden manifest and the stale grader rejected the same file",
+      "detail": "golden sets a valid cron schedule, concurrencyPolicy Forbid and a 200 second deadline. The corrected grader accepts it. The stale grader would reject it.",
+      "numbers": {
+        "golden_v128": 1.0,
+        "golden_stale_rule": 0.0,
+        "schema_errors": []
+      }
+    },
+    {
+      "id": "cheat-unhardened",
+      "name": "keyword stuffing fools grep grader",
+      "status": "pass",
+      "picture": "the cheat carried the three field names as strings, so the grep only grader passed a schedule written as prose",
+      "detail": "cheat contains the strings startingDeadlineSeconds, concurrencyPolicy and schedule, so the grep only grader passes it even though the schedule is prose and the policy is the yaml boolean Yes.",
+      "numbers": {
+        "cheat_grep_score": 1.0
+      }
+    },
+    {
+      "id": "cheat-hardened",
+      "name": "schema validator catches the cheat",
+      "status": "pass",
+      "picture": "the hardened grader parsed the yaml and found a schedule that is prose, a policy set to the boolean Yes and an empty container list",
+      "detail": "the hardened grader parses the yaml and validates each field. schedule is not a cron expression, concurrencyPolicy Yes is not in {Allow,Forbid,Replace} and there are no containers, so it scores 0.",
+      "numbers": {
+        "cheat_hardened_score": 0.0,
+        "schema_errors": [
+          "schedule is not a 5 field cron expression",
+          "concurrencyPolicy True not in ['Allow', 'Forbid', 'Replace']",
+          "startingDeadlineSeconds must be an integer",
+          "jobTemplate needs at least one container"
+        ]
+      }
+    },
+    {
+      "id": "headroom",
+      "name": "naive correct manifest scores below golden",
+      "status": "pass",
+      "picture": "the naive manifest validates but leaves concurrencyPolicy at Allow, so overlapping runs are permitted and it scores below the golden",
+      "detail": "naive is schema valid but leaves concurrencyPolicy at Allow, so overlapping runs are permitted and the v1.28 rule scores it below the golden.",
+      "numbers": {
+        "naive_v128": 0.0,
+        "golden_v128": 1.0
+      }
+    },
+    {
+      "id": "ground-truth",
+      "name": "stale rule corrected to v1.28 behaviour",
+      "status": "pass",
+      "picture": "the pre 1.21 claim that 100 missed starts stalls the job forever is stale, and on v1.28 the controller warns and runs the latest",
+      "detail": "the pre 1.21 claim that more than 100 missed starts stalls the CronJob forever is stale. On v1.28 the controller warns TooManyMissedTimes and runs the latest. Source kubernetes/kubernetes pkg/controller/cronjob/utils.go, not fetched, named only.",
+      "numbers": {
+        "stale_rule_marks_golden": 0.0,
+        "v128_rule_marks_golden": 1.0,
+        "source": "kubernetes/kubernetes pkg/controller/cronjob/utils.go, v1.28"
+      }
+    },
+    {
+      "id": "stale-vs-corrected",
+      "name": "wrong ground truth demonstrated",
+      "status": "warn",
+      "picture": "the stale grader scored the golden 0.0 and the corrected grader scored the same file 1.0",
+      "detail": "the stale grader scores the golden 0.0 and the corrected grader scores it 1.0, which is the whole point of the wrong ground truth demo.",
+      "numbers": {
+        "stale": 0.0,
+        "corrected": 1.0
+      }
+    }
+  ]
+}
