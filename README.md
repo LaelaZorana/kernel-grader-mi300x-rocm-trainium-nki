@@ -76,7 +76,7 @@ A grader that accepts anything inside a loose relative tolerance accepts a wrong
 
 Summing the same float32 weights sequentially, reversed, and in chunks of 256 against a float64 reference, the three orders disagree in 3227 of 4096 bins and sit at most 144 units in the last place apart. **The worst correct order is 108.** The grader bound is set at four times that, 432, which is a relative tolerance of 2.5843945438686927e-05.
 
-Under that bound a kernel dropping one weight per bin fails 4092 of 4096 bins, while a loose bound of one part in a hundred passes 1091 of its own wrong bins.
+Under that bound a kernel dropping every hundredth key of each bin fails 4092 of 4096 bins, while a loose bound of one part in a hundred passes 1091 of its own wrong bins.
 
 The same float16 inputs accumulated in float32 stay within 3.15e-06. Accumulated in float16 the largest bin stalls at 2048 against a true 32704, because the float16 gap at 2048 is 2 and every weight under 1 rounds away.
 
