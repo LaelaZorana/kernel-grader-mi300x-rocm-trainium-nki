@@ -1,5 +1,5 @@
 ---
-license: apache-2.0
+license: other
 pretty_name: Kernel grader, MI300X and Trainium
 tags:
 - gpu
@@ -135,4 +135,4 @@ A third file, dataset/nki_bins.jsonl, carries 16384 rows, one per bin per seed. 
 
 ## License
 
-Apache 2.0 for the code, see the licence file. The three files under dataset/ are CC BY 4.0, stated on their own card in that folder. The notice file carries the attribution that section 4 asks a derivative work to keep.
+Source available under the CodeZorana Source Available License, Version 1.0, in the LICENSE file. Reading, study and independent reproduction of the reported measurements are permitted. Production use, commercial use, redistribution and derivative works require a separate written licence. No patent licence is granted, and patent rights are reserved. Data files under dataset/ keep the Creative Commons terms stated on their own card. Licence enquiries go to the copyright holder.
